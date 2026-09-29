@@ -48,7 +48,7 @@ export function InlineAssignee({
           aria-label={`${t('unassign')} — ${task.humanKey}`}
           title={t('unassign')}
           onClick={() => update.mutate({ taskId: task.id, input: { assigneeId: null } })}
-          className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] leading-none text-ink-muted hover:text-danger"
+          className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-line text-[10px] leading-none text-ink-muted hover:border-danger hover:bg-danger/10 hover:text-danger"
         >
           ×
         </button>

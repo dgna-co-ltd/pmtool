@@ -21,7 +21,7 @@ import {
   type TaskFilters,
 } from './task-filters';
 import { DownloadIcon, PlusIcon, SparkleIcon, UploadIcon } from './task-list-icons';
-import { TimelineHeader } from './timeline-grid';
+import { TimelineGrid, TimelineHeader } from './timeline-grid';
 import { computeTimelineScale } from './timeline-scale';
 import { NlTaskModal } from '../ai/nl-task-modal';
 import { SuggestionsModal } from '../ai/suggestions-modal';
@@ -241,13 +241,17 @@ export function TaskList({
         </div>
       )}
 
-      {compact && scale && tasks && tasks.length > 0 && (
-        <div className="mt-4 px-1">
-          <TimelineHeader scale={scale} />
-        </div>
-      )}
+      <div className={compact && scale && tasks && tasks.length > 0 ? 'relative mt-4' : undefined}>
+        {compact && scale && tasks && tasks.length > 0 && (
+          <>
+            <TimelineGrid scale={scale} />
+            <div className="px-1">
+              <TimelineHeader scale={scale} />
+            </div>
+          </>
+        )}
 
-      <Card className="mt-4">
+        <Card className={compact && scale && tasks && tasks.length > 0 ? undefined : 'mt-4'}>
         {isLoading ? null : tasks && tasks.length > 0 ? (
           filtered.tasks.length > 0 ? (
             group === 'STATUS' ? (
@@ -299,7 +303,8 @@ export function TaskList({
         ) : (
           <p className="p-6 text-sm text-ink-secondary">{t('empty')}</p>
         )}
-      </Card>
+        </Card>
+      </div>
 
       <CreateTaskModal
         orgSlug={orgSlug}

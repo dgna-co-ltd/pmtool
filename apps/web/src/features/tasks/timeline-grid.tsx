@@ -3,25 +3,28 @@
 import { useTranslations } from 'next-intl';
 import { addDays, daysBetween, percentFor, type TimelineScale } from './timeline-scale';
 
-/** Weekend shading + a "today" line, shared by the header and every row so they read as one grid. */
+/**
+ * Continuous vertical week lines + a "today" line, drawn ONCE as a single overlay spanning the header
+ * and every row below it (mounted by the caller in a `position: relative` wrapper around both) — not
+ * redrawn per row. A grid that only exists inside each row's own thin strip reads as a stack of small
+ * decorations; one grid running the full height of the list is what makes it read as a Gantt chart.
+ */
 export function TimelineGrid({ scale }: { scale: TimelineScale }) {
   const totalDays = daysBetween(scale.start, scale.end);
   const todayPercent = percentFor(new Date(), scale);
 
-  const weekends: { left: number; width: number }[] = [];
+  const weekLines: number[] = [];
   for (let i = 0; i <= totalDays; i++) {
     const day = addDays(scale.start, i);
-    if (day.getDay() !== 0 && day.getDay() !== 6) continue;
-    const left = percentFor(day, scale);
-    weekends.push({ left, width: percentFor(addDays(day, 1), scale) - left });
+    if (day.getDay() === 1) weekLines.push(percentFor(day, scale));
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-      {weekends.map((w, i) => (
-        <span key={i} className="absolute inset-y-0 bg-surface-subtle" style={{ left: `${w.left}%`, width: `${w.width}%` }} />
+    <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+      {weekLines.map((left, i) => (
+        <span key={i} className="absolute inset-y-0 w-px bg-line" style={{ left: `${left}%` }} />
       ))}
-      <span className="absolute inset-y-0 w-px bg-action-primary/70" style={{ left: `${todayPercent}%` }} />
+      <span className="absolute inset-y-0 w-0.5 bg-action-primary" style={{ left: `${todayPercent}%` }} />
     </div>
   );
 }
@@ -35,19 +38,18 @@ export function TimelineHeader({ scale }: { scale: TimelineScale }) {
   const labels = Array.from({ length: labelCount }, (_, i) => addDays(scale.start, Math.round(i * step)));
 
   return (
-    <div className="relative mb-1.5 h-9 overflow-hidden rounded-md">
-      <TimelineGrid scale={scale} />
+    <div className="relative z-10 mb-1.5 h-6 border-b border-line">
       {labels.map((d, i) => (
         <span
           key={i}
-          className="absolute top-1 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-ink-muted"
+          className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-ink-muted"
           style={{ left: `${percentFor(d, scale)}%` }}
         >
           {d.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric', timeZone: 'UTC' })}
         </span>
       ))}
       <span
-        className="absolute bottom-1 -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold text-action-primary"
+        className="absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-b-sm bg-action-primary px-1 text-[10px] font-semibold text-ink-on-primary"
         style={{ left: `${percentFor(new Date(), scale)}%` }}
       >
         {t('today')}
