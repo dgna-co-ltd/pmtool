@@ -184,8 +184,11 @@ function TaskRow({
         style={compact ? undefined : { paddingLeft: indent }}
       >
         {(() => {
-          const titleLine = (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          // A Fragment, not a div: in the non-compact branch these items must be direct flex
+          // children of the same row as the fields div (matching the original single-line layout
+          // exactly); the compact branch wraps it in its own div to make it its own line.
+          const titleItems = (
+            <>
               {children.length > 0 ? (
                 <button
                   type="button"
@@ -272,13 +275,13 @@ function TaskRow({
                   onToggle={() => setDescOpen((o) => !o)}
                 />
               )}
-            </div>
+            </>
           );
 
           if (!compact) {
             return (
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                {titleLine}
+                {titleItems}
                 <div className="ml-8 flex flex-wrap items-center gap-2 sm:ml-0 sm:flex-nowrap">
                   <AssigneeStack task={task} />
                   {task.dueDate && due && (
@@ -331,7 +334,7 @@ function TaskRow({
             <div className="flex items-stretch">
               {/* Column width mirrors TASK_INFO_COL_PX (timeline-scale.ts) — Tailwind arbitrary values can't take a JS variable, so kept in sync by hand. */}
               <div className="min-w-0 flex-1 sm:w-[480px] sm:flex-none" style={{ paddingLeft: indent }}>
-                {titleLine}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">{titleItems}</div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <InlineAssignee task={task} orgSlug={orgSlug} projectKey={projectKey} members={members ?? []} />
                   <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
