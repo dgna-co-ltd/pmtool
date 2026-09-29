@@ -342,7 +342,7 @@
     "focus": {
       "enter": "Siêu tối giản",
       "exit": "Xem đầy đủ",
-      "hint": "Chế độ siêu tối giản: chỉ gồm số liệu chính và danh sách công việc, mỗi dòng có sẵn thanh thời gian 2 tuần tới. Các mục khác (Điều lệ, Rủi ro...) vẫn ở chế độ xem đầy đủ."
+      "hint": "Chế độ siêu tối giản: chỉ gồm số liệu chính và danh sách công việc, mỗi dòng có sẵn thanh Gantt riêng theo cùng một thang thời gian. Các mục khác (Điều lệ, Rủi ro...) vẫn ở chế độ xem đầy đủ."
     }
   },
   "board": {
@@ -385,7 +385,8 @@
       "importCsv": "Nhập CSV",
       "exportCsv": "Xuất CSV",
       "moveUp": "Lên",
-      "moveDown": "Xuống"
+      "moveDown": "Xuống",
+      "today": "Hôm nay"
     },
     "create": {
       "title": "Tạo công việc mới",

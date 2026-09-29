@@ -21,6 +21,8 @@ import {
   type TaskFilters,
 } from './task-filters';
 import { DownloadIcon, PlusIcon, SparkleIcon, UploadIcon } from './task-list-icons';
+import { TimelineHeader } from './timeline-grid';
+import { computeTimelineScale } from './timeline-scale';
 import { NlTaskModal } from '../ai/nl-task-modal';
 import { SuggestionsModal } from '../ai/suggestions-modal';
 import { usePermissions } from '../projects/use-permissions';
@@ -76,6 +78,10 @@ export function TaskList({
 
   const set = <K extends keyof TaskFilters>(key: K, value: TaskFilters[K]) =>
     setFilters((f) => ({ ...f, [key]: value }));
+
+  // Computed from every task, not just the filtered/sorted view, so the axis doesn't jump around as
+  // filters change — same convention as the standalone Gantt tab.
+  const scale = useMemo(() => (compact ? computeTimelineScale(tasks ?? []) : undefined), [compact, tasks]);
 
   return (
     <div>
@@ -235,6 +241,12 @@ export function TaskList({
         </div>
       )}
 
+      {compact && scale && tasks && tasks.length > 0 && (
+        <div className="mt-4 px-1">
+          <TimelineHeader scale={scale} />
+        </div>
+      )}
+
       <Card className="mt-4">
         {isLoading ? null : tasks && tasks.length > 0 ? (
           filtered.tasks.length > 0 ? (
@@ -253,6 +265,7 @@ export function TaskList({
                     onToggle={rows.toggle}
                     compact={compact}
                     members={members}
+                    scale={scale}
                   />
                 </section>
               ))
@@ -266,6 +279,7 @@ export function TaskList({
                 onToggle={rows.toggle}
                 compact={compact}
                 members={members}
+                scale={scale}
                 // Ordering only makes sense on the full tree in its own order.
                 reorderAmong={canEdit && !filtering && sort === 'DEFAULT' ? (tasks ?? []) : undefined}
               />

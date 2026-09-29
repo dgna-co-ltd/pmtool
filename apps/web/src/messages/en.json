@@ -342,7 +342,7 @@
     "focus": {
       "enter": "Focus view",
       "exit": "Full view",
-      "hint": "Focus view: just the key numbers and the task list, each row with its own next-2-weeks timeline strip. Everything else (Charter, Risks, ...) is still one click away in the full view."
+      "hint": "Focus view: just the key numbers and the task list, each row with its own Gantt bar on a shared timeline. Everything else (Charter, Risks, ...) is still one click away in the full view."
     }
   },
   "board": {
@@ -385,7 +385,8 @@
       "importCsv": "Import CSV",
       "exportCsv": "Export CSV",
       "moveUp": "Move up",
-      "moveDown": "Move down"
+      "moveDown": "Move down",
+      "today": "Today"
     },
     "create": {
       "title": "Create a new task",

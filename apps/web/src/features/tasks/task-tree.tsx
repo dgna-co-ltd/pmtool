@@ -14,6 +14,7 @@ import { CreateTaskModal } from './create-task-modal';
 import { dueState, type DueState } from './task-filters';
 import { DescriptionToggle, InlineAssignee, InlineDates, InlineDescription, InlinePercent } from './task-row-quick-edit';
 import { InlineGanttBar } from './inline-gantt-bar';
+import type { TimelineScale } from './timeline-scale';
 import { neighbourSiblings, planMove, type DropZone } from '../wbs/wbs-move';
 
 type Member = { userId: string; user?: { fullName: string; avatarUrl: string | null } | null };
@@ -107,6 +108,7 @@ function TaskRow({
   flat = false,
   compact = false,
   members,
+  scale,
 }: {
   task: TaskDto;
   depth: number;
@@ -121,6 +123,8 @@ function TaskRow({
   /** Focus view: assignee/dates/%complete/description become directly editable in the row instead of read-only. */
   compact?: boolean;
   members?: Member[];
+  /** The whole list's shared timeline scale (timeline-scale.ts), so this row's Gantt bar lines up with every other row's. */
+  scale?: TimelineScale;
 }) {
   const t = useTranslations('tasks.list');
   const reorder = useContext(ReorderCtx);
@@ -273,10 +277,7 @@ function TaskRow({
               <AssigneeStack task={task} />
             )}
             {compact ? (
-              <>
-                <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
-                <InlineGanttBar task={task} />
-              </>
+              <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
             ) : (
               task.dueDate &&
               due && (
@@ -323,6 +324,7 @@ function TaskRow({
             <InlineStatus task={task} orgSlug={orgSlug} projectKey={projectKey} />
           </div>
         </div>
+        {compact && scale && <InlineGanttBar task={task} scale={scale} />}
         {compact && descOpen && (
           <InlineDescription task={task} orgSlug={orgSlug} projectKey={projectKey} indent={indent + 24} />
         )}
@@ -343,6 +345,7 @@ function TaskRow({
             forceExpanded={forceExpanded}
             compact={compact}
             members={members}
+            scale={scale}
           />
         ))}
 
@@ -371,6 +374,7 @@ export function TaskTree({
   reorderAmong,
   compact = false,
   members,
+  scale,
 }: {
   tasks: TaskDto[];
   orgSlug: string;
@@ -384,6 +388,7 @@ export function TaskTree({
   /** Focus view: assignee/dates/%complete/description become directly editable in each row. */
   compact?: boolean;
   members?: Member[];
+  scale?: TimelineScale;
 }) {
   const grouped = useMemo(() => groupByParent(tasks), [tasks]);
   const flat = useMemo(
@@ -439,6 +444,7 @@ export function TaskTree({
             flat
             compact={compact}
             members={members}
+            scale={scale}
           />
         ))}
         {hasMore && (
