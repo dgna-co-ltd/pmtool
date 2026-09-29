@@ -6,27 +6,13 @@ import { TASK_STATUSES } from '@pmtool/shared-types';
 import { Card, CardContent, CardHeader, CardTitle } from '@pmtool/ui';
 import { StatCard } from '../dashboard/stat-card';
 import { StatusBreakdown } from '../dashboard/status-breakdown';
-import { FocusGanttWidget } from '../gantt/focus-gantt-widget';
 import { TaskList } from '../tasks/task-list';
-
-/** So the Gantt strip and the task list read as one connected view, not two separate "which tasks" lists. */
-function GanttAndTasks({ orgSlug, projectKey }: { orgSlug: string; projectKey: string }) {
-  const t = useTranslations('projects.focus');
-  return (
-    <Card className="p-4">
-      <h3 className="text-sm font-semibold text-ink-secondary">{t('ganttTitle')}</h3>
-      <div className="mt-2">
-        <FocusGanttWidget orgSlug={orgSlug} projectKey={projectKey} />
-      </div>
-      <div className="my-4 border-t border-line" />
-      <TaskList orgSlug={orgSlug} projectKey={projectKey} compact />
-    </Card>
-  );
-}
 
 /**
  * A single scrolling page with no tab-switching: just the numbers and the task list people check
- * daily. Everything else (Gantt, Charter, Risks, ...) stays one click away via "Xem đầy đủ".
+ * daily. Everything else (Charter, Risks, ...) stays one click away via "Xem đầy đủ". Each row
+ * carries its own next-2-weeks timeline strip (inline-gantt-bar.tsx) instead of a separate Gantt
+ * section — a task used to appear twice (once as a Gantt row, once as a list row); now it's one row.
  */
 export function ProjectFocusView({ orgSlug, projectKey }: { orgSlug: string; projectKey: string }) {
   const t = useTranslations('projects.focus');
@@ -55,7 +41,9 @@ export function ProjectFocusView({ orgSlug, projectKey }: { orgSlug: string; pro
         </Card>
       )}
 
-      <GanttAndTasks orgSlug={orgSlug} projectKey={projectKey} />
+      <Card className="p-4">
+        <TaskList orgSlug={orgSlug} projectKey={projectKey} compact />
+      </Card>
 
       <p className="text-center text-xs text-ink-muted">{t('hint')}</p>
     </div>

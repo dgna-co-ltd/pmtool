@@ -14,7 +14,9 @@ const DEPENDENCY_TYPE_TO_LINK_TYPE: Record<DependencyType, GanttLinkType> = {
 // (packages/ui's GanttChart has no notion of TaskStatus — it just paints
 // whatever `barColor` string it's given). Mirrors STATUS_VARIANT's
 // semantics (task-badges.tsx) so a bar's color always matches its badge.
-const STATUS_BAR_COLOR: Record<TaskDto['status'], string> = {
+// Exported: the Focus view's inline per-row timeline bar (inline-gantt-bar.tsx) reuses it too,
+// so a task's color means the same thing whether it's on the full Gantt tab or a Focus row.
+export const STATUS_BAR_COLOR: Record<TaskDto['status'], string> = {
   TODO: 'var(--color-text-muted)',
   IN_PROGRESS: 'var(--color-info)',
   IN_REVIEW: 'var(--color-warning)',
@@ -22,7 +24,7 @@ const STATUS_BAR_COLOR: Record<TaskDto['status'], string> = {
   BLOCKED: 'var(--color-danger)',
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+export const DAY_MS = 24 * 60 * 60 * 1000;
 
 function toAssignees(task: TaskDto): GanttAssignee[] {
   return (task.assignees ?? []).map((a) => ({ name: a.fullName, character: a.mascotCharacter, role: a.role }));

@@ -13,6 +13,7 @@ import { TaskPriorityBadge } from './task-badges';
 import { CreateTaskModal } from './create-task-modal';
 import { dueState, type DueState } from './task-filters';
 import { DescriptionToggle, InlineAssignee, InlineDates, InlineDescription, InlinePercent } from './task-row-quick-edit';
+import { InlineGanttBar } from './inline-gantt-bar';
 import { neighbourSiblings, planMove, type DropZone } from '../wbs/wbs-move';
 
 type Member = { userId: string; user?: { fullName: string; avatarUrl: string | null } | null };
@@ -272,7 +273,10 @@ function TaskRow({
               <AssigneeStack task={task} />
             )}
             {compact ? (
-              <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
+              <>
+                <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
+                <InlineGanttBar task={task} />
+              </>
             ) : (
               task.dueDate &&
               due && (

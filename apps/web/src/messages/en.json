@@ -342,9 +342,7 @@
     "focus": {
       "enter": "Focus view",
       "exit": "Full view",
-      "hint": "Focus view: just the key numbers, the next 2 weeks and the task list. Everything else (Charter, Risks, ...) is still one click away in the full view.",
-      "ganttTitle": "Next 2 weeks",
-      "ganttEmpty": "No tasks in the next 2 weeks."
+      "hint": "Focus view: just the key numbers and the task list, each row with its own next-2-weeks timeline strip. Everything else (Charter, Risks, ...) is still one click away in the full view."
     }
   },
   "board": {
