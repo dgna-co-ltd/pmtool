@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useExportTasksCsv, useMe, useTasks } from '@pmtool/api-client';
+import { useExportTasksCsv, useMe, useOrganizationMembers, useTasks } from '@pmtool/api-client';
 import type { TaskSuggestionDto } from '@pmtool/shared-types';
 import { TASK_STATUSES } from '@pmtool/shared-types';
 import { Button, Card, Input, Select } from '@pmtool/ui';
@@ -20,16 +20,31 @@ import {
   type SortKey,
   type TaskFilters,
 } from './task-filters';
+import { DownloadIcon, PlusIcon, SparkleIcon, UploadIcon } from './task-list-icons';
 import { NlTaskModal } from '../ai/nl-task-modal';
 import { SuggestionsModal } from '../ai/suggestions-modal';
 import { usePermissions } from '../projects/use-permissions';
 
-export function TaskList({ orgSlug, projectKey }: { orgSlug: string; projectKey: string }) {
+/**
+ * `compact`: the Focus (one-page) view. Toolbar buttons become icon-only (name on hover, via `title`)
+ * and each row's assignee/dates/%complete/description become directly editable instead of read-only —
+ * the whole point of the one-page view is not having to leave it to make these everyday edits.
+ */
+export function TaskList({
+  orgSlug,
+  projectKey,
+  compact = false,
+}: {
+  orgSlug: string;
+  projectKey: string;
+  compact?: boolean;
+}) {
   const t = useTranslations('tasks.list');
   const tStatus = useTranslations('tasks.status');
   const tAi = useTranslations('ai.nlCreate');
   const { data: tasks, isLoading } = useTasks(orgSlug, projectKey);
   const { data: me } = useMe();
+  const { data: members } = useOrganizationMembers(compact ? orgSlug : undefined);
   const { canEdit } = usePermissions(orgSlug, projectKey);
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -69,7 +84,11 @@ export function TaskList({ orgSlug, projectKey }: { orgSlug: string; projectKey:
         <div className="flex flex-wrap gap-2">
           <Button
             variant="ghost"
+            size={compact ? 'sm' : undefined}
+            className={compact ? 'w-8 px-0' : undefined}
             disabled={exportCsv.isPending}
+            aria-label={t('exportCsv')}
+            title={compact ? t('exportCsv') : undefined}
             onClick={() =>
               exportCsv.mutate(undefined, {
                 onSuccess: (text) =>
@@ -77,19 +96,41 @@ export function TaskList({ orgSlug, projectKey }: { orgSlug: string; projectKey:
               })
             }
           >
-            {t('exportCsv')}
+            {compact ? <DownloadIcon /> : t('exportCsv')}
           </Button>
           {canEdit && (
-            <Button variant="ghost" onClick={() => setImportOpen(true)}>
-              {t('importCsv')}
+            <Button
+              variant="ghost"
+              size={compact ? 'sm' : undefined}
+              className={compact ? 'w-8 px-0' : undefined}
+              aria-label={t('importCsv')}
+              title={compact ? t('importCsv') : undefined}
+              onClick={() => setImportOpen(true)}
+            >
+              {compact ? <UploadIcon /> : t('importCsv')}
             </Button>
           )}
           {canEdit && (
             <>
-              <Button variant="outline" onClick={() => setNlCreateOpen(true)}>
-                {tAi('trigger')}
+              <Button
+                variant="outline"
+                size={compact ? 'sm' : undefined}
+                className={compact ? 'w-8 px-0' : undefined}
+                aria-label={tAi('trigger')}
+                title={compact ? tAi('trigger') : undefined}
+                onClick={() => setNlCreateOpen(true)}
+              >
+                {compact ? <SparkleIcon /> : tAi('trigger')}
               </Button>
-              <Button onClick={() => setCreateOpen(true)}>{t('create')}</Button>
+              <Button
+                size={compact ? 'sm' : undefined}
+                className={compact ? 'w-8 px-0' : undefined}
+                aria-label={t('create')}
+                title={compact ? t('create') : undefined}
+                onClick={() => setCreateOpen(true)}
+              >
+                {compact ? <PlusIcon /> : t('create')}
+              </Button>
             </>
           )}
         </div>
@@ -210,6 +251,8 @@ export function TaskList({ orgSlug, projectKey }: { orgSlug: string; projectKey:
                     forceExpanded
                     collapsed={rows.collapsed}
                     onToggle={rows.toggle}
+                    compact={compact}
+                    members={members}
                   />
                 </section>
               ))
@@ -221,6 +264,8 @@ export function TaskList({ orgSlug, projectKey }: { orgSlug: string; projectKey:
                 forceExpanded={filtering}
                 collapsed={rows.collapsed}
                 onToggle={rows.toggle}
+                compact={compact}
+                members={members}
                 // Ordering only makes sense on the full tree in its own order.
                 reorderAmong={canEdit && !filtering && sort === 'DEFAULT' ? (tasks ?? []) : undefined}
               />

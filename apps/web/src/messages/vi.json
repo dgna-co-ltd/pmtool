@@ -342,7 +342,9 @@
     "focus": {
       "enter": "Siêu tối giản",
       "exit": "Xem đầy đủ",
-      "hint": "Chế độ siêu tối giản: chỉ gồm số liệu chính và danh sách công việc. Các mục khác (Tiến độ, Điều lệ, Rủi ro...) vẫn ở chế độ xem đầy đủ."
+      "hint": "Chế độ siêu tối giản: chỉ gồm số liệu chính, lịch trình 2 tuần tới và danh sách công việc. Các mục khác (Điều lệ, Rủi ro...) vẫn ở chế độ xem đầy đủ.",
+      "ganttTitle": "2 tuần tới",
+      "ganttEmpty": "Không có công việc nào trong 2 tuần tới."
     }
   },
   "board": {
@@ -453,7 +455,8 @@
       "nextTask": "Công việc sau",
       "nodeType": "Cấp WBS",
       "searchMember": "Tìm theo tên...",
-      "noMemberFound": "Không tìm thấy ai phù hợp"
+      "noMemberFound": "Không tìm thấy ai phù hợp",
+      "unassign": "Bỏ người phụ trách"
     },
     "history": {
       "title": "Lịch sử thay đổi",

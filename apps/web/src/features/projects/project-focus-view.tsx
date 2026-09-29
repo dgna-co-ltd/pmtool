@@ -6,6 +6,7 @@ import { TASK_STATUSES } from '@pmtool/shared-types';
 import { Card, CardContent, CardHeader, CardTitle } from '@pmtool/ui';
 import { StatCard } from '../dashboard/stat-card';
 import { StatusBreakdown } from '../dashboard/status-breakdown';
+import { FocusGanttWidget } from '../gantt/focus-gantt-widget';
 import { TaskList } from '../tasks/task-list';
 
 /**
@@ -28,6 +29,15 @@ export function ProjectFocusView({ orgSlug, projectKey }: { orgSlug: string; pro
         </div>
       )}
 
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('ganttTitle')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FocusGanttWidget orgSlug={orgSlug} projectKey={projectKey} />
+        </CardContent>
+      </Card>
+
       {data && (
         <Card>
           <CardHeader>
@@ -40,7 +50,7 @@ export function ProjectFocusView({ orgSlug, projectKey }: { orgSlug: string; pro
       )}
 
       <Card className="p-4">
-        <TaskList orgSlug={orgSlug} projectKey={projectKey} />
+        <TaskList orgSlug={orgSlug} projectKey={projectKey} compact />
       </Card>
 
       <p className="text-center text-xs text-ink-muted">{t('hint')}</p>

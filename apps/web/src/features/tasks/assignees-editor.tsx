@@ -18,14 +18,17 @@ const MENU_WIDTH = 224; // w-56
  * `position: absolute` dropdown would paint *behind* the next Card down the page (Dependencies) instead of
  * over it, no matter how high its z-index, since z-index only competes within the same stacking context.
  */
-function MemberPicker({
+export function MemberPicker({
   candidates,
   label,
   onPick,
+  trigger,
 }: {
   candidates: { userId: string; user?: { fullName: string; avatarUrl: string | null } | null }[];
   label: string;
   onPick: (userId: string) => void;
+  /** Replaces the default dashed "+" trigger — e.g. an avatar, so picking doubles as "who's on this". */
+  trigger?: React.ReactNode;
 }) {
   const t = useTranslations('tasks.detail');
   const [open, setOpen] = useState(false);
@@ -55,11 +58,15 @@ function MemberPicker({
           if (!open) setQuery('');
           setOpen((o) => !o);
         }}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-line text-ink-muted hover:border-action-primary hover:text-ink-primary"
+        className={
+          trigger
+            ? 'rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus'
+            : 'flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-line text-ink-muted hover:border-action-primary hover:text-ink-primary'
+        }
         aria-label={label}
         title={label}
       >
-        +
+        {trigger ?? '+'}
       </button>
       {open &&
         pos &&

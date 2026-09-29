@@ -342,7 +342,9 @@
     "focus": {
       "enter": "Focus view",
       "exit": "Full view",
-      "hint": "Focus view: just the key numbers and the task list. Everything else (Timeline, Charter, Risks, ...) is still one click away in the full view."
+      "hint": "Focus view: just the key numbers, the next 2 weeks and the task list. Everything else (Charter, Risks, ...) is still one click away in the full view.",
+      "ganttTitle": "Next 2 weeks",
+      "ganttEmpty": "No tasks in the next 2 weeks."
     }
   },
   "board": {
@@ -453,7 +455,8 @@
       "nextTask": "Next task",
       "nodeType": "WBS level",
       "searchMember": "Search by name...",
-      "noMemberFound": "No one matches"
+      "noMemberFound": "No one matches",
+      "unassign": "Unassign"
     },
     "history": {
       "title": "History",

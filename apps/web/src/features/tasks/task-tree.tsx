@@ -12,7 +12,10 @@ import { formatDate } from '../../lib/date-input';
 import { TaskPriorityBadge } from './task-badges';
 import { CreateTaskModal } from './create-task-modal';
 import { dueState, type DueState } from './task-filters';
+import { DescriptionToggle, InlineAssignee, InlineDates, InlineDescription, InlinePercent } from './task-row-quick-edit';
 import { neighbourSiblings, planMove, type DropZone } from '../wbs/wbs-move';
+
+type Member = { userId: string; user?: { fullName: string; avatarUrl: string | null } | null };
 
 interface Reorder {
   dragId: string | null;
@@ -101,6 +104,8 @@ function TaskRow({
   toggle,
   forceExpanded,
   flat = false,
+  compact = false,
+  members,
 }: {
   task: TaskDto;
   depth: number;
@@ -112,15 +117,20 @@ function TaskRow({
   forceExpanded: boolean;
   /** Render just this row; the caller lists descendants itself (used for windowed rendering). */
   flat?: boolean;
+  /** Focus view: assignee/dates/%complete/description become directly editable in the row instead of read-only. */
+  compact?: boolean;
+  members?: Member[];
 }) {
   const t = useTranslations('tasks.list');
   const reorder = useContext(ReorderCtx);
   const [addingSubtask, setAddingSubtask] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
   const children = grouped.get(task.id) ?? [];
   const expanded = forceExpanded || !collapsed.has(task.id);
   const href = `/${orgSlug}/projects/${projectKey}/tasks/${task.id}`;
   const due = dueState(task.dueDate, task.status);
   const doneChildren = children.filter((c) => c.status === 'DONE').length;
+  const indent = 8 + depth * 20;
 
   return (
     <>
@@ -247,23 +257,42 @@ function TaskRow({
           >
             +
           </button>
+          {compact && (
+            <DescriptionToggle
+              taskHumanKey={task.humanKey}
+              hasDescription={Boolean(task.description)}
+              open={descOpen}
+              onToggle={() => setDescOpen((o) => !o)}
+            />
+          )}
           <div className="ml-8 flex flex-wrap items-center gap-2 sm:ml-0 sm:flex-nowrap">
-            <AssigneeStack task={task} />
-            {task.dueDate && due && (
-              <Badge
-                variant={DUE_VARIANT[due]}
-                title={`${t('due')}: ${formatDate(task.dueDate)}`}
-                className={due === 'done' ? 'opacity-60' : undefined}
-              >
-                {due === 'overdue' ? `${t('overdue')} · ` : ''}
-                {new Date(task.dueDate).toLocaleDateString('vi-VN', {
-                  day: 'numeric',
-                  month: 'numeric',
-                  timeZone: 'UTC',
-                })}
-              </Badge>
+            {compact ? (
+              <InlineAssignee task={task} orgSlug={orgSlug} projectKey={projectKey} members={members ?? []} />
+            ) : (
+              <AssigneeStack task={task} />
             )}
-            {children.length > 0 ? (
+            {compact ? (
+              <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
+            ) : (
+              task.dueDate &&
+              due && (
+                <Badge
+                  variant={DUE_VARIANT[due]}
+                  title={`${t('due')}: ${formatDate(task.dueDate)}`}
+                  className={due === 'done' ? 'opacity-60' : undefined}
+                >
+                  {due === 'overdue' ? `${t('overdue')} · ` : ''}
+                  {new Date(task.dueDate).toLocaleDateString('vi-VN', {
+                    day: 'numeric',
+                    month: 'numeric',
+                    timeZone: 'UTC',
+                  })}
+                </Badge>
+              )
+            )}
+            {compact ? (
+              <InlinePercent task={task} orgSlug={orgSlug} projectKey={projectKey} />
+            ) : children.length > 0 ? (
               <span
                 title={t('subtasksDone', { done: doneChildren, total: children.length })}
                 className="shrink-0 text-xs tabular-nums text-ink-secondary"
@@ -290,6 +319,9 @@ function TaskRow({
             <InlineStatus task={task} orgSlug={orgSlug} projectKey={projectKey} />
           </div>
         </div>
+        {compact && descOpen && (
+          <InlineDescription task={task} orgSlug={orgSlug} projectKey={projectKey} indent={indent + 24} />
+        )}
       </div>
 
       {!flat &&
@@ -305,6 +337,8 @@ function TaskRow({
             collapsed={collapsed}
             toggle={toggle}
             forceExpanded={forceExpanded}
+            compact={compact}
+            members={members}
           />
         ))}
 
@@ -331,6 +365,8 @@ export function TaskTree({
   collapsed,
   onToggle,
   reorderAmong,
+  compact = false,
+  members,
 }: {
   tasks: TaskDto[];
   orgSlug: string;
@@ -341,6 +377,9 @@ export function TaskTree({
   onToggle: (id: string) => void;
   /** Every task of the project; when given, rows can be dragged to reorder or re-parent them. */
   reorderAmong?: TaskDto[];
+  /** Focus view: assignee/dates/%complete/description become directly editable in each row. */
+  compact?: boolean;
+  members?: Member[];
 }) {
   const grouped = useMemo(() => groupByParent(tasks), [tasks]);
   const flat = useMemo(
@@ -394,6 +433,8 @@ export function TaskTree({
             toggle={onToggle}
             forceExpanded={forceExpanded}
             flat
+            compact={compact}
+            members={members}
           />
         ))}
         {hasMore && (
