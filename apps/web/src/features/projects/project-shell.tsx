@@ -31,7 +31,9 @@ export function ProjectShell({
   const { role } = usePermissions(orgSlug, projectKey);
 
   const tGroups = useTranslations('projects.groups');
+  const tFocus = useTranslations('projects.focus');
   const base = `/${orgSlug}/projects/${projectKey}`;
+  const isFocus = pathname.startsWith(`${base}/focus`);
   // Six top-level groups instead of fourteen tabs; every view keeps its own URL and is one click away in the sub-navigation.
   const groups: { key: string; label: string; items: { href: string; label: string }[] }[] = [
     {
@@ -92,60 +94,70 @@ export function ProjectShell({
     <div>
       <BackHomeLinksWidget homeHref={`/${orgSlug}/dashboard`} className="mb-3 print:hidden" />
       {project && (
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <span className="font-mono text-xs font-semibold text-ink-muted">{project.key}</span>
           <h1 className="text-lg font-semibold text-ink-primary">{project.name}</h1>
           <Badge variant={STATUS_VARIANT[project.status]}>{tStatus(project.status)}</Badge>
+          <Link
+            href={isFocus ? `${base}/dashboard` : `${base}/focus`}
+            className="ml-auto shrink-0 whitespace-nowrap rounded-full border border-line-glass px-3 py-1 text-xs font-medium text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary print:hidden"
+          >
+            {isFocus ? tFocus('exit') : tFocus('enter')}
+          </Link>
         </div>
       )}
-      <nav
-        aria-label={tGroups('aria')}
-        className="mb-4 flex gap-1 overflow-x-auto border-b border-line print:hidden"
-      >
-        {groups.map((g) => {
-          const active = g === activeGroup;
-          return (
-            <Link
-              key={g.key}
-              href={g.items[0]!.href}
-              aria-current={active ? 'page' : undefined}
-              className={
-                active
-                  ? 'shrink-0 whitespace-nowrap border-b-2 border-action-primary px-3 py-2 text-sm font-medium text-ink-primary'
-                  : 'shrink-0 whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-secondary hover:text-ink-primary'
-              }
+      {!isFocus && (
+        <>
+          <nav
+            aria-label={tGroups('aria')}
+            className="mb-4 flex gap-1 overflow-x-auto border-b border-line print:hidden"
+          >
+            {groups.map((g) => {
+              const active = g === activeGroup;
+              return (
+                <Link
+                  key={g.key}
+                  href={g.items[0]!.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={
+                    active
+                      ? 'shrink-0 whitespace-nowrap border-b-2 border-action-primary px-3 py-2 text-sm font-medium text-ink-primary'
+                      : 'shrink-0 whitespace-nowrap border-b-2 border-transparent px-3 py-2 text-sm font-medium text-ink-secondary hover:text-ink-primary'
+                  }
+                >
+                  {g.label}
+                </Link>
+              );
+            })}
+          </nav>
+          {activeGroup && activeGroup.items.length > 1 && (
+            <div
+              className="mb-6 flex gap-1 overflow-x-auto print:hidden"
+              role="group"
+              aria-label={activeGroup.label}
             >
-              {g.label}
-            </Link>
-          );
-        })}
-      </nav>
-      {activeGroup && activeGroup.items.length > 1 && (
-        <div
-          className="mb-6 flex gap-1 overflow-x-auto print:hidden"
-          role="group"
-          aria-label={activeGroup.label}
-        >
-          {activeGroup.items.map((item) => {
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className={
-                  active
-                    ? 'glass-field shrink-0 whitespace-nowrap rounded-full border border-line-glass px-3 py-1 text-sm font-medium text-ink-primary'
-                    : 'shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-sm text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary'
-                }
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
+              {activeGroup.items.map((item) => {
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={
+                      active
+                        ? 'glass-field shrink-0 whitespace-nowrap rounded-full border border-line-glass px-3 py-1 text-sm font-medium text-ink-primary'
+                        : 'shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-sm text-ink-secondary hover:bg-surface-subtle hover:text-ink-primary'
+                    }
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {activeGroup && activeGroup.items.length === 1 && <div className="mb-2" />}
+        </>
       )}
-      {activeGroup && activeGroup.items.length === 1 && <div className="mb-2" />}
       {role === 'VIEWER' && (
         <p role="note" className="mb-4 rounded-md bg-info-bg px-3 py-2 text-sm text-info">
           {tTabs('viewerNotice')}

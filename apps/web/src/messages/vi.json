@@ -338,6 +338,11 @@
       "governance": "Quản trị",
       "report": "Báo cáo ngày",
       "history": "Lịch sử"
+    },
+    "focus": {
+      "enter": "Siêu tối giản",
+      "exit": "Xem đầy đủ",
+      "hint": "Chế độ siêu tối giản: chỉ gồm số liệu chính và danh sách công việc. Các mục khác (Tiến độ, Điều lệ, Rủi ro...) vẫn ở chế độ xem đầy đủ."
     }
   },
   "board": {

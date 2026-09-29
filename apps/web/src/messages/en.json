@@ -338,6 +338,11 @@
       "governance": "Governance",
       "report": "Daily report",
       "history": "History"
+    },
+    "focus": {
+      "enter": "Focus view",
+      "exit": "Full view",
+      "hint": "Focus view: just the key numbers and the task list. Everything else (Timeline, Charter, Risks, ...) is still one click away in the full view."
     }
   },
   "board": {
