@@ -174,157 +174,180 @@ function TaskRow({
           reorder.setDragId(null);
           reorder.setOver(null);
         }}
-        className={`group border-b border-line px-2 py-2 hover:bg-surface-subtle ${
+        className={`group border-b border-line py-2 ${compact ? 'pr-2' : 'px-2'} hover:bg-surface-subtle ${
           reorder?.dragId === task.id ? 'opacity-40' : ''
         } ${reorder?.over?.id === task.id && reorder.over.zone === 'inside' ? 'ring-2 ring-inset ring-action-primary' : ''} ${
           reorder?.over?.id === task.id && reorder.over.zone === 'before'
             ? 'border-t-2 border-t-action-primary'
             : ''
         } ${reorder?.over?.id === task.id && reorder.over.zone === 'after' ? 'border-b-2 border-b-action-primary' : ''}`}
-        style={{ paddingLeft: 8 + depth * 20 }}
+        style={compact ? undefined : { paddingLeft: indent }}
       >
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          {children.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => toggle(task.id)}
-              aria-label={expanded ? t('collapse') : t('expand')}
-              aria-expanded={expanded}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted hover:bg-surface-subtle"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="12"
-                height="12"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className={expanded ? 'rotate-90 transition-transform' : 'transition-transform'}
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-          ) : (
-            <span className="w-6 shrink-0" />
-          )}
-
-          {reorder && (
-            <span className="flex shrink-0 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
-              {(
-                [
-                  ['up', '↑', t('moveUp')],
-                  ['down', '↓', t('moveDown')],
-                ] as const
-              ).map(([action, glyph, label]) => (
+        {(() => {
+          const titleLine = (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              {children.length > 0 ? (
                 <button
-                  key={action}
                   type="button"
-                  aria-label={`${label}: ${task.title}`}
-                  title={label}
-                  onClick={() => {
-                    const { prev, next } = neighbourSiblings(reorder.allTasks, task.id);
-                    if (action === 'up' && prev) reorder.moveTo(task.id, prev.id, 'before');
-                    if (action === 'down' && next) reorder.moveTo(task.id, next.id, 'after');
-                  }}
-                  className="h-6 w-5 rounded text-xs text-ink-muted hover:bg-surface-subtle hover:text-ink-primary"
+                  onClick={() => toggle(task.id)}
+                  aria-label={expanded ? t('collapse') : t('expand')}
+                  aria-expanded={expanded}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted hover:bg-surface-subtle"
                 >
-                  {glyph}
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="12"
+                    height="12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={expanded ? 'rotate-90 transition-transform' : 'transition-transform'}
+                  >
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
                 </button>
-              ))}
-            </span>
-          )}
-          <Link href={href} className="shrink-0 font-mono text-xs text-ink-muted hover:underline">
-            {task.isMilestone && (
-              <span
-                aria-label={t('milestone')}
-                title={t('milestone')}
-                className="mr-1 text-action-primary"
-              >
-                ◆
-              </span>
-            )}
-            {task.humanKey}
-          </Link>
-          <Link
-            href={href}
-            title={task.title}
-            className="min-w-0 flex-1 basis-[11rem] break-words text-sm text-ink-primary hover:underline sm:truncate"
-          >
-            {task.title}
-          </Link>
+              ) : (
+                <span className="w-6 shrink-0" />
+              )}
 
-          <button
-            type="button"
-            onClick={() => setAddingSubtask(true)}
-            aria-label={`${t('addSubtask')} — ${task.humanKey}`}
-            title={t('addSubtask')}
-            className="flex h-7 w-7 shrink-0 sm:order-last items-center justify-center rounded text-ink-muted hover:bg-surface-subtle hover:text-ink-primary"
-          >
-            +
-          </button>
-          {compact && (
-            <DescriptionToggle
-              taskHumanKey={task.humanKey}
-              hasDescription={Boolean(task.description)}
-              open={descOpen}
-              onToggle={() => setDescOpen((o) => !o)}
-            />
-          )}
-          <div className="ml-8 flex flex-wrap items-center gap-2 sm:ml-0 sm:flex-nowrap">
-            {compact ? (
-              <InlineAssignee task={task} orgSlug={orgSlug} projectKey={projectKey} members={members ?? []} />
-            ) : (
-              <AssigneeStack task={task} />
-            )}
-            {compact ? (
-              <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
-            ) : (
-              task.dueDate &&
-              due && (
-                <Badge
-                  variant={DUE_VARIANT[due]}
-                  title={`${t('due')}: ${formatDate(task.dueDate)}`}
-                  className={due === 'done' ? 'opacity-60' : undefined}
-                >
-                  {due === 'overdue' ? `${t('overdue')} · ` : ''}
-                  {new Date(task.dueDate).toLocaleDateString('vi-VN', {
-                    day: 'numeric',
-                    month: 'numeric',
-                    timeZone: 'UTC',
-                  })}
-                </Badge>
-              )
-            )}
-            {compact ? (
-              <InlinePercent task={task} orgSlug={orgSlug} projectKey={projectKey} />
-            ) : children.length > 0 ? (
-              <span
-                title={t('subtasksDone', { done: doneChildren, total: children.length })}
-                className="shrink-0 text-xs tabular-nums text-ink-secondary"
-              >
-                {doneChildren}/{children.length}
-              </span>
-            ) : (
-              task.percentComplete > 0 && (
-                <span
-                  title={`${task.percentComplete}%`}
-                  className="flex shrink-0 items-center gap-1 text-xs tabular-nums text-ink-secondary"
-                >
-                  <span className="h-1.5 w-10 overflow-hidden rounded-full bg-surface-subtle">
-                    <span
-                      className="block h-full rounded-full bg-action-primary"
-                      style={{ width: `${task.percentComplete}%` }}
-                    />
-                  </span>
-                  {task.percentComplete}%
+              {reorder && (
+                <span className="flex shrink-0 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
+                  {(
+                    [
+                      ['up', '↑', t('moveUp')],
+                      ['down', '↓', t('moveDown')],
+                    ] as const
+                  ).map(([action, glyph, label]) => (
+                    <button
+                      key={action}
+                      type="button"
+                      aria-label={`${label}: ${task.title}`}
+                      title={label}
+                      onClick={() => {
+                        const { prev, next } = neighbourSiblings(reorder.allTasks, task.id);
+                        if (action === 'up' && prev) reorder.moveTo(task.id, prev.id, 'before');
+                        if (action === 'down' && next) reorder.moveTo(task.id, next.id, 'after');
+                      }}
+                      className="h-6 w-5 rounded text-xs text-ink-muted hover:bg-surface-subtle hover:text-ink-primary"
+                    >
+                      {glyph}
+                    </button>
+                  ))}
                 </span>
-              )
-            )}
-            <TaskPriorityBadge priority={task.priority} />
-            <InlineStatus task={task} orgSlug={orgSlug} projectKey={projectKey} />
-          </div>
-        </div>
-        {compact && scale && <InlineGanttBar task={task} scale={scale} />}
+              )}
+              <Link href={href} className="shrink-0 font-mono text-xs text-ink-muted hover:underline">
+                {task.isMilestone && (
+                  <span
+                    aria-label={t('milestone')}
+                    title={t('milestone')}
+                    className="mr-1 text-action-primary"
+                  >
+                    ◆
+                  </span>
+                )}
+                {task.humanKey}
+              </Link>
+              <Link
+                href={href}
+                title={task.title}
+                className="min-w-0 flex-1 basis-[11rem] break-words text-sm text-ink-primary hover:underline sm:truncate"
+              >
+                {task.title}
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setAddingSubtask(true)}
+                aria-label={`${t('addSubtask')} — ${task.humanKey}`}
+                title={t('addSubtask')}
+                className="flex h-7 w-7 shrink-0 sm:order-last items-center justify-center rounded text-ink-muted hover:bg-surface-subtle hover:text-ink-primary"
+              >
+                +
+              </button>
+              {compact && (
+                <DescriptionToggle
+                  taskHumanKey={task.humanKey}
+                  hasDescription={Boolean(task.description)}
+                  open={descOpen}
+                  onToggle={() => setDescOpen((o) => !o)}
+                />
+              )}
+            </div>
+          );
+
+          if (!compact) {
+            return (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                {titleLine}
+                <div className="ml-8 flex flex-wrap items-center gap-2 sm:ml-0 sm:flex-nowrap">
+                  <AssigneeStack task={task} />
+                  {task.dueDate && due && (
+                    <Badge
+                      variant={DUE_VARIANT[due]}
+                      title={`${t('due')}: ${formatDate(task.dueDate)}`}
+                      className={due === 'done' ? 'opacity-60' : undefined}
+                    >
+                      {due === 'overdue' ? `${t('overdue')} · ` : ''}
+                      {new Date(task.dueDate).toLocaleDateString('vi-VN', {
+                        day: 'numeric',
+                        month: 'numeric',
+                        timeZone: 'UTC',
+                      })}
+                    </Badge>
+                  )}
+                  {children.length > 0 ? (
+                    <span
+                      title={t('subtasksDone', { done: doneChildren, total: children.length })}
+                      className="shrink-0 text-xs tabular-nums text-ink-secondary"
+                    >
+                      {doneChildren}/{children.length}
+                    </span>
+                  ) : (
+                    task.percentComplete > 0 && (
+                      <span
+                        title={`${task.percentComplete}%`}
+                        className="flex shrink-0 items-center gap-1 text-xs tabular-nums text-ink-secondary"
+                      >
+                        <span className="h-1.5 w-10 overflow-hidden rounded-full bg-surface-subtle">
+                          <span
+                            className="block h-full rounded-full bg-action-primary"
+                            style={{ width: `${task.percentComplete}%` }}
+                          />
+                        </span>
+                        {task.percentComplete}%
+                      </span>
+                    )
+                  )}
+                  <TaskPriorityBadge priority={task.priority} />
+                  <InlineStatus task={task} orgSlug={orgSlug} projectKey={projectKey} />
+                </div>
+              </div>
+            );
+          }
+
+          // Compact (Focus view): a fixed-width task-info column on the left, the Gantt bar in the
+          // remaining space on the right — a real two-column layout, not a bar stacked under the fields.
+          return (
+            <div className="flex items-stretch">
+              {/* Column width mirrors TASK_INFO_COL_PX (timeline-scale.ts) — Tailwind arbitrary values can't take a JS variable, so kept in sync by hand. */}
+              <div className="min-w-0 flex-1 sm:w-[480px] sm:flex-none" style={{ paddingLeft: indent }}>
+                {titleLine}
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                  <InlineAssignee task={task} orgSlug={orgSlug} projectKey={projectKey} members={members ?? []} />
+                  <InlineDates task={task} orgSlug={orgSlug} projectKey={projectKey} />
+                  <InlinePercent task={task} orgSlug={orgSlug} projectKey={projectKey} />
+                  <TaskPriorityBadge priority={task.priority} />
+                  <InlineStatus task={task} orgSlug={orgSlug} projectKey={projectKey} />
+                </div>
+              </div>
+              {scale && (
+                <div className="hidden flex-1 items-center border-l border-line sm:flex">
+                  <InlineGanttBar task={task} scale={scale} />
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {compact && descOpen && (
           <InlineDescription task={task} orgSlug={orgSlug} projectKey={projectKey} indent={indent + 24} />
         )}

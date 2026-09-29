@@ -9,6 +9,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_SPAN_DAYS = 21;
 
 /**
+ * Width of the task-info column in the Focus list's two-column layout (info | Gantt) — shared by the
+ * header, the grid overlay and every row's own left column so all three split at the exact same x
+ * position. task-tree.tsx applies it as a Tailwind arbitrary value (`sm:w-[480px]`, since inline
+ * styles can't express a `sm:` breakpoint); keep that literal in sync with this constant by hand.
+ */
+export const TASK_INFO_COL_PX = 480;
+
+/**
  * The date range every row's timeline bar is drawn against — the same scale for the whole list, so a
  * row's position is comparable to every other row's, like a real Gantt chart. Spans every dated task
  * (a task is never hidden just because it's overdue or months out) plus today, with a floor so a

@@ -245,9 +245,7 @@ export function TaskList({
         {compact && scale && tasks && tasks.length > 0 && (
           <>
             <TimelineGrid scale={scale} />
-            <div className="px-1">
-              <TimelineHeader scale={scale} />
-            </div>
+            <TimelineHeader scale={scale} />
           </>
         )}
 
