@@ -1063,6 +1063,7 @@
   },
   "gantt": {
     "columns": {
+      "code": "WBS code",
       "task": "Task",
       "assignee": "Assignee"
     },
@@ -1074,6 +1075,10 @@
       "day": "Day",
       "week": "Week",
       "month": "Month"
+    },
+    "preview": {
+      "loading": "Loading...",
+      "viewDetails": "View details →"
     }
   },
   "deliverables": {

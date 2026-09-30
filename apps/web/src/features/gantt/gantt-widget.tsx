@@ -5,8 +5,8 @@ import { useTranslations } from 'next-intl';
 import type { DependencyType } from '@pmtool/shared-types';
 import { useCreateDependency, useDeleteDependency, useUpdateTaskById } from '@pmtool/api-client';
 import { GanttChart, type GanttLinkChange, type GanttLinkCreate, type GanttLinkType } from '@pmtool/ui';
-import { useRouter } from '../../i18n/navigation';
 import { useGanttData } from './use-gantt-data';
+import { TaskPreviewModal } from './task-preview-modal';
 
 const LINK_TYPE_TO_DEPENDENCY_TYPE: Record<GanttLinkType, DependencyType> = {
   e2s: 'FINISH_TO_START',
@@ -18,13 +18,13 @@ const LINK_TYPE_TO_DEPENDENCY_TYPE: Record<GanttLinkType, DependencyType> = {
 export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectKey: string }) {
   const t = useTranslations('gantt');
   const tTask = useTranslations('tasks.roles');
-  const router = useRouter();
 
   const { tasks, dependencies, ganttTasks, ganttLinks, isLoading, isError } = useGanttData(orgSlug, projectKey);
   const updateTask = useUpdateTaskById(orgSlug, projectKey);
   const createDependency = useCreateDependency(orgSlug, projectKey);
   const deleteDependency = useDeleteDependency(orgSlug, projectKey);
 
+  const [previewTaskId, setPreviewTaskId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -64,6 +64,7 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
         tasks={ganttTasks}
         links={ganttLinks}
         labels={{
+          columnCode: t('columns.code'),
           columnTask: t('columns.task'),
           columnAssignee: t('columns.assignee'),
           roleLabels: { primary: tTask('assignee'), support: tTask('supporter') },
@@ -87,9 +88,7 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
             },
           );
         }}
-        onTaskClick={(taskId) => {
-          router.push(`/${orgSlug}/projects/${projectKey}/tasks/${taskId}`);
-        }}
+        onTaskClick={(taskId) => setPreviewTaskId(taskId)}
         onLinkAdd={(link: GanttLinkCreate) => {
           createDependency.mutate(
             {
@@ -129,6 +128,14 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
           });
         }}
       />
+      {previewTaskId && (
+        <TaskPreviewModal
+          orgSlug={orgSlug}
+          projectKey={projectKey}
+          taskId={previewTaskId}
+          onClose={() => setPreviewTaskId(null)}
+        />
+      )}
     </div>
   );
 }

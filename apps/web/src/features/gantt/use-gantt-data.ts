@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { DependencyDto, TaskDto, DependencyType } from '@pmtool/shared-types';
+import { computeWbsCodes } from '@pmtool/shared-types';
 import { useDependencies, useTasks } from '@pmtool/api-client';
 import type { GanttAssignee, GanttLinkInput, GanttLinkType, GanttTaskInput } from '@pmtool/ui';
 
@@ -37,6 +38,9 @@ export function useGanttData(orgSlug: string, projectKey: string) {
 
   const ganttTasks = useMemo<GanttTaskInput[]>(() => {
     if (!tasks) return [];
+    const wbsCodes = computeWbsCodes(
+      tasks.map((t) => ({ id: t.id, parentTaskId: t.parentTaskId, orderIndex: t.orderIndex })),
+    );
     const childrenByParentId = new Map<string, TaskDto[]>();
     for (const tsk of tasks) {
       if (!tsk.parentTaskId) continue;
@@ -73,7 +77,8 @@ export function useGanttData(orgSlug: string, projectKey: string) {
 
       return {
         id: task.id,
-        text: `${task.humanKey} ${task.title}`,
+        text: task.title,
+        wbsCode: wbsCodes.get(task.id) ?? '',
         start,
         end,
         parent: task.parentTaskId ?? undefined,

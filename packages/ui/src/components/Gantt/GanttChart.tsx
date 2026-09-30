@@ -17,6 +17,8 @@ export type GanttLinkType = 's2s' | 's2e' | 'e2s' | 'e2e';
 export interface GanttTaskInput {
   id: string;
   text: string;
+  /** PMBOK WBS code ("1", "1.2", "1.2.3") shown in its own grid column, ahead of the name. */
+  wbsCode?: string;
   start: Date;
   end: Date;
   duration?: number;
@@ -66,6 +68,7 @@ export interface GanttLinkChange {
 }
 
 export interface GanttLabels {
+  columnCode: string;
   columnTask: string;
   columnAssignee: string;
   roleLabels?: { primary: string; support: string };
@@ -79,6 +82,8 @@ export interface GanttChartProps {
   links: GanttLinkInput[];
   labels: GanttLabels;
   onTaskUpdate?: (update: GanttTaskUpdate) => void;
+  /** Fires only for a click on the task's bar/cell in the chart area — selecting it via the grid (its
+   * name or assignee icons) already highlights and scrolls to the bar on its own and does not call this. */
   onTaskClick?: (taskId: string) => void;
   onLinkAdd?: (link: GanttLinkCreate) => void;
   onLinkDelete?: (linkId: string) => void;
@@ -347,7 +352,20 @@ export function GanttChart({
   }, [tasks, mounted]);
 
   const columns = useMemo<IColumnConfig[]>(() => {
+    const code: IColumnConfig[] = narrow
+      ? []
+      : [
+          {
+            id: 'wbsCode',
+            header: { text: labels.columnCode, css: 'pm-gantt-header-nowrap' },
+            width: 72,
+            cell: ({ row }) => (
+              <span className="font-mono text-xs text-ink-muted">{String(row.wbsCode ?? '')}</span>
+            ),
+          },
+        ];
     const base: IColumnConfig[] = [
+      ...code,
       {
         id: 'text',
         // This is the primary/tree column (it owns the expand/collapse
@@ -418,6 +436,11 @@ export function GanttChart({
       else openIds.current.delete(String(ev.id));
     });
     api.on('select-task', (ev) => {
+      // The library's own grid click handler passes `focus: "grid"` when the selection came from
+      // clicking the name/assignee grid (not the chart) — confirmed by reading its compiled source,
+      // since this isn't documented. That path already highlights and scrolls to the bar on its own
+      // (it also passes `show: "xy"`), so only a chart click here should open something.
+      if (ev.focus === 'grid') return;
       onTaskClick?.(String(ev.id));
     });
     api.on('add-link', (ev) => {

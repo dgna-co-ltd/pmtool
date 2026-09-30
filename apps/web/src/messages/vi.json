@@ -1063,6 +1063,7 @@
   },
   "gantt": {
     "columns": {
+      "code": "Mã WBS",
       "task": "Công việc",
       "assignee": "Người phụ trách"
     },
@@ -1074,6 +1075,10 @@
       "day": "Ngày",
       "week": "Tuần",
       "month": "Tháng"
+    },
+    "preview": {
+      "loading": "Đang tải...",
+      "viewDetails": "Xem chi tiết →"
     }
   },
   "deliverables": {

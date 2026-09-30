@@ -28,7 +28,7 @@ test('shows an empty-state message for a project with no tasks, and Vietnamese c
   // the page's own "Công việc" tab link, which is ambiguous now that the
   // grid's header column is sized correctly (see the gridWidth fix in
   // GanttChart.tsx) and therefore counts as visible too.
-  // Only Task/Assignee remain as columns — Start/Status/Priority were
+  // WBS code/Task/Assignee are the columns — Start/Status/Priority were
   // dropped in favor of the chart's own bar position/color, which already
   // show that information without repeating it in the grid.
   await page.goto(`/vi/${org.slug}/projects/${project.key}/gantt`);
@@ -37,7 +37,7 @@ test('shows an empty-state message for a project with no tasks, and Vietnamese c
   await expect(ganttGrid.getByText('Người phụ trách', { exact: true }).filter({ visible: true })).toBeVisible();
 });
 
-test('a dependency added from a task detail page renders as a link on the Gantt after reload, and clicking a task bar opens its detail page', async ({
+test('a dependency added from a task detail page renders as a link on the Gantt after reload; clicking a task name selects it without navigating, and clicking its bar opens a preview popup', async ({
   page,
 }) => {
   const user = makeUser('ganttlink');
@@ -89,8 +89,19 @@ test('a dependency added from a task detail page renders as a link on the Gantt 
   await expect(page.getByText('Công việc trước', { exact: false }).filter({ visible: true }).first()).toBeVisible();
   await expect(page.locator('[data-link-id]')).toHaveCount(1);
 
-  // Clicking a task's bar/grid-row opens its detail page.
+  // Clicking the task's name in the grid selects/highlights it in the chart — it must not navigate away.
+  const ganttUrl = page.url();
   const taskCell = page.getByText('Công việc sau', { exact: false }).filter({ visible: true }).first();
   await taskCell.click();
-  await page.waitForURL(new RegExp(`tasks/${taskId}`), { timeout: 10_000 });
+  await page.waitForTimeout(300);
+  expect(page.url()).toBe(ganttUrl);
+
+  // Clicking its bar in the chart opens a preview popup instead — still no navigation.
+  await page.locator(`.wx-bar[data-task-id=":${taskId}"]`).click();
+  await expect(page.getByRole('dialog').getByText('Công việc sau')).toBeVisible();
+  expect(page.url()).toBe(ganttUrl);
+  await expect(page.getByRole('dialog').getByRole('link', { name: /Xem chi tiết/ })).toHaveAttribute(
+    'href',
+    new RegExp(`tasks/${taskId}$`),
+  );
 });
