@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useUpdateTaskById } from '@pmtool/api-client';
-import type { TaskDto } from '@pmtool/shared-types';
+import { TASK_PRIORITIES, TASK_STATUSES, type TaskDto } from '@pmtool/shared-types';
 import { Input } from '@pmtool/ui';
 import { UserAvatar } from '../people/user-avatar';
 import { dateInputToIso, isoToDateInput } from '../../lib/date-input';
@@ -165,6 +165,69 @@ export function InlinePercent({
       />
       <span className="text-xs text-ink-secondary">%</span>
     </span>
+  );
+}
+
+/** Status dropdown, saved immediately on change — same convention as task-tree.tsx's row status select. */
+export function InlineStatus({
+  task,
+  orgSlug,
+  projectKey,
+}: {
+  task: TaskDto;
+  orgSlug: string;
+  projectKey: string;
+}) {
+  const tStatus = useTranslations('tasks.status');
+  const update = useUpdateTaskById(orgSlug, projectKey);
+  return (
+    <select
+      aria-label={`${tStatus('label')} ${task.humanKey}`}
+      value={task.status}
+      disabled={update.isPending}
+      onChange={(e) =>
+        update.mutate({ taskId: task.id, input: { status: e.target.value as TaskDto['status'] } })
+      }
+      className="h-7 shrink-0 glass-field rounded-md border border-line-glass px-1.5 text-xs text-ink-primary outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+    >
+      {TASK_STATUSES.map((s) => (
+        <option key={s} value={s}>
+          {tStatus(s)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Priority dropdown, saved immediately on change — same convention as InlineStatus. */
+export function InlinePriority({
+  task,
+  orgSlug,
+  projectKey,
+}: {
+  task: TaskDto;
+  orgSlug: string;
+  projectKey: string;
+}) {
+  const t = useTranslations('tasks.detail');
+  const tPriority = useTranslations('tasks.priority');
+  const update = useUpdateTaskById(orgSlug, projectKey);
+  return (
+    <select
+      aria-label={`${t('priority')} — ${task.humanKey}`}
+      value={task.priority}
+      disabled={update.isPending}
+      onChange={(e) =>
+        update.mutate({ taskId: task.id, input: { priority: e.target.value as TaskDto['priority'] } })
+      }
+      className="h-7 shrink-0 glass-field rounded-md border border-line-glass px-1.5 text-xs text-ink-primary outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+    >
+      {TASK_PRIORITIES.map((p) => (
+        <option key={p} value={p}>
+          {tPriority(p)}
+        </option>
+      ))}
+    </select>
   );
 }
 

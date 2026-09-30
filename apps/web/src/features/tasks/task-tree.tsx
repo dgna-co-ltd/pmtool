@@ -4,7 +4,7 @@ import { flattenVisible, groupByParent } from './tree-rows';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useMoveTask, useUpdateTaskById } from '@pmtool/api-client';
-import { TASK_STATUSES, type TaskDto } from '@pmtool/shared-types';
+import type { TaskDto } from '@pmtool/shared-types';
 import { Badge } from '@pmtool/ui';
 import { UserAvatar } from '../people/user-avatar';
 import { Link } from '../../i18n/navigation';
@@ -12,7 +12,14 @@ import { formatDate } from '../../lib/date-input';
 import { TaskPriorityBadge } from './task-badges';
 import { CreateTaskModal } from './create-task-modal';
 import { dueState, type DueState } from './task-filters';
-import { DescriptionToggle, InlineAssignee, InlineDates, InlineDescription, InlinePercent } from './task-row-quick-edit';
+import {
+  DescriptionToggle,
+  InlineAssignee,
+  InlineDates,
+  InlineDescription,
+  InlinePercent,
+  InlineStatus,
+} from './task-row-quick-edit';
 import { InlineGanttBar } from './inline-gantt-bar';
 import type { TimelineScale } from './timeline-scale';
 import { neighbourSiblings, planMove, type DropZone } from '../wbs/wbs-move';
@@ -63,36 +70,6 @@ function AssigneeStack({ task }: { task: TaskDto }) {
         </span>
       )}
     </span>
-  );
-}
-
-function InlineStatus({
-  task,
-  orgSlug,
-  projectKey,
-}: {
-  task: TaskDto;
-  orgSlug: string;
-  projectKey: string;
-}) {
-  const tStatus = useTranslations('tasks.status');
-  const update = useUpdateTaskById(orgSlug, projectKey);
-  return (
-    <select
-      aria-label={`${tStatus('label')} ${task.humanKey}`}
-      value={task.status}
-      disabled={update.isPending}
-      onChange={(e) =>
-        update.mutate({ taskId: task.id, input: { status: e.target.value as TaskDto['status'] } })
-      }
-      className="h-7 shrink-0 glass-field rounded-md border border-line-glass px-1.5 text-xs text-ink-primary outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
-    >
-      {TASK_STATUSES.map((s) => (
-        <option key={s} value={s}>
-          {tStatus(s)}
-        </option>
-      ))}
-    </select>
   );
 }
 

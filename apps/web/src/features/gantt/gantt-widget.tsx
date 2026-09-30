@@ -18,6 +18,7 @@ const LINK_TYPE_TO_DEPENDENCY_TYPE: Record<GanttLinkType, DependencyType> = {
 export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectKey: string }) {
   const t = useTranslations('gantt');
   const tTask = useTranslations('tasks.roles');
+  const tTaskList = useTranslations('tasks.list');
 
   const { tasks, dependencies, ganttTasks, ganttLinks, isLoading, isError } = useGanttData(orgSlug, projectKey);
   const updateTask = useUpdateTaskById(orgSlug, projectKey);
@@ -71,6 +72,8 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
           zoomDay: t('zoom.day'),
           zoomWeek: t('zoom.week'),
           zoomMonth: t('zoom.month'),
+          expandAll: tTaskList('expandAll'),
+          collapseAll: tTaskList('collapseAll'),
         }}
         onTaskUpdate={({ id, start, end }) => {
           if (!start && !end) return;

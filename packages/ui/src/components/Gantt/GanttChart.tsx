@@ -75,6 +75,8 @@ export interface GanttLabels {
   zoomDay: string;
   zoomWeek: string;
   zoomMonth: string;
+  expandAll: string;
+  collapseAll: string;
 }
 
 export interface GanttChartProps {
@@ -326,6 +328,19 @@ export function GanttChart({
   // the library rebuilds its tree from scratch (all collapsed) — so the open state
   // is kept here and fed back into the data instead of living only in the library.
   const openIds = useRef<Set<string>>(new Set());
+  const apiRef = useRef<IApi | null>(null);
+
+  // Drives every row through the same `open-task` action a real click on its toggle
+  // fires (confirmed by reading the compiled source), so it updates the library's own
+  // live tree state rather than just the seed value fed back in on the next data refetch.
+  function setAllOpen(open: boolean) {
+    for (const task of tasks) {
+      if (task.type !== 'summary') continue;
+      if (open) openIds.current.add(task.id);
+      else openIds.current.delete(task.id);
+      apiRef.current?.exec('open-task', { id: task.id, mode: open });
+    }
+  }
 
   useEffect(() => setMounted(true), []);
 
@@ -422,6 +437,7 @@ export function GanttChart({
   }
 
   function handleInit(api: IApi) {
+    apiRef.current = api;
     api.on('update-task', (ev) => {
       if (ev.inProgress) return;
       onTaskUpdate?.({
@@ -471,10 +487,28 @@ export function GanttChart({
 
   const Skin = resolvedTheme === 'dark' ? WillowDark : Willow;
   const colorCss = buildStatusColorCss(tasks);
+  const hasSummaryRows = tasks.some((t) => t.type === 'summary');
 
   return (
     <div className="w-full">
-      <div className="mb-2 flex justify-end gap-1">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className={hasSummaryRows ? 'flex gap-3 text-xs' : 'hidden'}>
+          <button
+            type="button"
+            onClick={() => setAllOpen(true)}
+            className="font-medium text-ink-secondary hover:text-ink-primary hover:underline"
+          >
+            {labels.expandAll}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllOpen(false)}
+            className="font-medium text-ink-secondary hover:text-ink-primary hover:underline"
+          >
+            {labels.collapseAll}
+          </button>
+        </div>
+        <div className="flex gap-1">
         {(
           [
             ['day', labels.zoomDay],
@@ -496,6 +530,7 @@ export function GanttChart({
             {label}
           </button>
         ))}
+        </div>
       </div>
       {colorCss && <style>{colorCss}</style>}
       <div className="relative w-full">
