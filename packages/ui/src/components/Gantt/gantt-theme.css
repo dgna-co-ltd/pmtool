@@ -29,6 +29,10 @@
 }
 .pm-gantt-today {
   background: color-mix(in srgb, var(--color-action-primary-bg) 16%, transparent);
+  /* A visible line at the start of "today", not just the faint tint above — inset so it
+     doesn't add width/reflow the column (`markers`, the documented line API, is PRO-only
+     and hard-disabled in the installed free build; see ganttHighlightTime's own comment). */
+  box-shadow: inset 2px 0 0 0 var(--color-action-primary-bg);
 }
 
 /* A plain-string column header wraps across multiple lines inside the

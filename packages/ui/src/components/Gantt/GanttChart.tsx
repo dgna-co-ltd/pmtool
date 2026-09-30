@@ -324,6 +324,8 @@ export function GanttChart({
   const [narrow, setNarrow] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const todayLineRef = useRef<HTMLDivElement>(null);
   // Which parent rows the user has expanded. Saving a task refetches the list, and
   // the library rebuilds its tree from scratch (all collapsed) — so the open state
   // is kept here and fed back into the data instead of living only in the library.
@@ -365,6 +367,35 @@ export function GanttChart({
       observer.disconnect();
     };
   }, [tasks, mounted]);
+
+  // Positions the hand-drawn today-line (see the JSX comment above it) off the header's own today
+  // cell, which — unlike the chart-body overlay — always renders at its correct x/width. Both rects
+  // are read in the same viewport-relative frame, so the offset is correct regardless of horizontal
+  // scroll. Re-measured whenever the zoom level or task set could have moved that cell.
+  useEffect(() => {
+    const wrapper = contentRef.current;
+    const line = todayLineRef.current;
+    if (!wrapper || !line) return;
+    const position = () => {
+      const headerCell = wrapper.querySelector<HTMLElement>('.wx-scale .pm-gantt-today');
+      if (!headerCell) {
+        line.classList.add('hidden');
+        return;
+      }
+      const left = headerCell.getBoundingClientRect().left - wrapper.getBoundingClientRect().left;
+      line.style.left = `${left}px`;
+      line.classList.remove('hidden');
+    };
+    const frame = requestAnimationFrame(position);
+    const observer = new ResizeObserver(position);
+    observer.observe(wrapper);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+    // `tasks`, not `tasksWithOpen`: only the date range (driving where the scale/today cell falls)
+    // matters here, and expand/collapse (the only way they differ) doesn't move it.
+  }, [zoom, tasks, mounted]);
 
   const columns = useMemo<IColumnConfig[]>(() => {
     const code: IColumnConfig[] = narrow
@@ -438,6 +469,11 @@ export function GanttChart({
 
   function handleInit(api: IApi) {
     apiRef.current = api;
+    // Default view on first load: 2 days before today, so "today" sits just inside the
+    // left edge instead of the chart opening on whatever the earliest task happens to be.
+    const initialDate = new Date();
+    initialDate.setDate(initialDate.getDate() - 2);
+    api.exec('scroll-chart', { date: initialDate });
     api.on('update-task', (ev) => {
       if (ev.inProgress) return;
       onTaskUpdate?.({
@@ -538,7 +574,20 @@ export function GanttChart({
           className="w-full overflow-x-auto overflow-y-hidden rounded-lg border border-line"
           ref={scrollRef}
         >
-          <div style={{ minWidth: gridWidth + 200 }}>
+          <div ref={contentRef} className="relative" style={{ minWidth: gridWidth + 200 }}>
+            {/* The library's own "today" highlight (ganttHighlightTime/.pm-gantt-today) only ever
+                covers the header cell — its chart-body counterpart (`.wx-gantt-holidays`) renders at
+                zero height in the installed build (verified live: its `height: 100%` never resolves,
+                unlike `markers`, this isn't a documented PRO-only feature, just broken), so it never
+                actually reaches past the header. Drawn by hand instead: a plain absolutely-positioned
+                line measured off the header cell's own (correctly-positioned) rect, spanning the full
+                height of this wrapper — which already grows with every rendered row — so it re-covers
+                the same visual ground the library's version was supposed to. */}
+            <div
+              ref={todayLineRef}
+              className="pointer-events-none absolute inset-y-0 z-10 hidden w-0.5 bg-action-primary"
+              aria-hidden="true"
+            />
             {/* The library loads its icon font from a third-party CDN by default (two sequential requests, ~3 s on first open, and a hard dependency on someone else's server). We serve the same font from our own origin instead. */}
             <link rel="stylesheet" href="/fonts/svar/wx-icons.css" precedence="default" />
             <Skin fonts={false}>
