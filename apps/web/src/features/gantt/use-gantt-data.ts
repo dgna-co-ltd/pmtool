@@ -31,6 +31,20 @@ function toAssignees(task: TaskDto): GanttAssignee[] {
   return (task.assignees ?? []).map((a) => ({ name: a.fullName, character: a.mascotCharacter, role: a.role }));
 }
 
+// Local, not UTC: the chart buckets bars into day-columns by each Date's local calendar day (the
+// JS/library-ecosystem default), so a boundary computed in UTC can land on the "wrong" side of
+// midnight in the viewer's timezone and spill a bar into a neighbouring column. Task dates are stored
+// at noon UTC specifically so they fall on the intended calendar day in any local timezone from
+// UTC-12 to UTC+11 (see dateInputToIso's own comment) — reading them with local getters is exactly
+// what makes that work here.
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function addLocalDays(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+
 /** Maps a project's tasks/dependencies into GanttChart's input shape — shared by the full Gantt tab and the Focus view's next-2-weeks strip. */
 export function useGanttData(orgSlug: string, projectKey: string) {
   const { data: tasks, isLoading: tasksLoading, isError: tasksError } = useTasks(orgSlug, projectKey);
@@ -49,13 +63,25 @@ export function useGanttData(orgSlug: string, projectKey: string) {
       childrenByParentId.set(tsk.parentTaskId, siblings);
     }
 
+    // Task dates are calendar days stored at noon UTC (see dateInputToIso's own comment), so a 1-day
+    // task has startDate === dueDate. GanttChart draws [start, end) in absolute time, so that pair
+    // needs converting to day *boundaries* — the start of the start day through the start of the day
+    // *after* the due day — rather than used as-is. A naive "if end <= start, add one day from start"
+    // (the previous approach here) instead landed `end` at the same noon the next day, which — being
+    // exactly as far into day 2 as `start` was into day 1 — straddles both day columns, drawing a
+    // same-day task as two days wide. This still clamps a reversed pair (end before start) to a single day.
     function taskDates(task: TaskDto): { start: Date; end: Date } {
-      const start = task.startDate ? new Date(task.startDate) : new Date(task.createdAt);
-      let end = task.dueDate
-        ? new Date(task.dueDate)
-        : new Date(start.getTime() + Math.max(1, task.estimateHours ? task.estimateHours / 8 : 1) * DAY_MS);
-      if (end <= start) end = new Date(start.getTime() + DAY_MS);
-      return { start, end };
+      const rawStart = task.startDate ? new Date(task.startDate) : new Date(task.createdAt);
+      const start = startOfLocalDay(rawStart);
+      if (task.dueDate) {
+        const endDay = startOfLocalDay(new Date(task.dueDate));
+        const end = addLocalDays(endDay < start ? start : endDay, 1);
+        return { start, end };
+      }
+      // No due date at all: an estimate-based width in whole days (at least 1), not derived from a
+      // real end date.
+      const days = Math.max(1, task.estimateHours ? Math.ceil(task.estimateHours / 8) : 1);
+      return { start, end: addLocalDays(start, days) };
     }
 
     return tasks.map((task) => {
