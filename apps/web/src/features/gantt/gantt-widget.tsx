@@ -72,6 +72,7 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
           zoomDay: t('zoom.day'),
           zoomWeek: t('zoom.week'),
           zoomMonth: t('zoom.month'),
+          today: t('today'),
           expandAll: tTaskList('expandAll'),
           collapseAll: tTaskList('collapseAll'),
         }}

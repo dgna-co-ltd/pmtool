@@ -1076,6 +1076,7 @@
       "week": "Week",
       "month": "Month"
     },
+    "today": "Today",
     "preview": {
       "loading": "Loading...",
       "viewDetails": "View details →"
