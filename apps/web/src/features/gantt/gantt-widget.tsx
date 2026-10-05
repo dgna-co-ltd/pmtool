@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { DependencyType } from '@pmtool/shared-types';
 import { useCreateDependency, useDeleteDependency, useUpdateTaskById } from '@pmtool/api-client';
 import { GanttChart, type GanttLinkChange, type GanttLinkCreate, type GanttLinkType } from '@pmtool/ui';
-import { useGanttData } from './use-gantt-data';
+import { addLocalDays, localDateToIsoDay, useGanttData } from './use-gantt-data';
 import { TaskPreviewModal } from './task-preview-modal';
 
 const LINK_TYPE_TO_DEPENDENCY_TYPE: Record<GanttLinkType, DependencyType> = {
@@ -82,8 +82,12 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
             {
               taskId: id,
               input: {
-                ...(start ? { startDate: start.toISOString() } : {}),
-                ...(end ? { dueDate: end.toISOString() } : {}),
+                // Never `.toISOString()`: it encodes the UTC instant, which silently shifts the
+                // calendar day by the viewer's timezone offset (see localDateToIsoDay's own comment).
+                ...(start ? { startDate: localDateToIsoDay(start) } : {}),
+                // `end` is the day *after* the last included day (confirmed live: dragging a task's due
+                // date from the 25th to the 26th reports `end` as the 27th) — our dueDate is inclusive.
+                ...(end ? { dueDate: localDateToIsoDay(addLocalDays(end, -1)) } : {}),
               },
             },
             {

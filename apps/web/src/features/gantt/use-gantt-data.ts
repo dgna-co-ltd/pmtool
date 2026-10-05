@@ -3,6 +3,7 @@ import type { DependencyDto, TaskDto, DependencyType } from '@pmtool/shared-type
 import { computeWbsCodes } from '@pmtool/shared-types';
 import { useDependencies, useTasks } from '@pmtool/api-client';
 import type { GanttAssignee, GanttLinkInput, GanttLinkType, GanttTaskInput } from '@pmtool/ui';
+import { dateInputToIso } from '../../lib/date-input';
 
 const DEPENDENCY_TYPE_TO_LINK_TYPE: Record<DependencyType, GanttLinkType> = {
   FINISH_TO_START: 'e2s',
@@ -37,12 +38,26 @@ function toAssignees(task: TaskDto): GanttAssignee[] {
 // at noon UTC specifically so they fall on the intended calendar day in any local timezone from
 // UTC-12 to UTC+11 (see dateInputToIso's own comment) — reading them with local getters is exactly
 // what makes that work here.
-function startOfLocalDay(d: Date): Date {
+export function startOfLocalDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-function addLocalDays(d: Date, n: number): Date {
+export function addLocalDays(d: Date, n: number): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+
+/**
+ * A JS Date's *local* calendar date, as the noon-UTC ISO instant the API expects for a date-only
+ * field (dateInputToIso's own convention) — never `.toISOString()`, which encodes the instant in UTC
+ * and silently shifts the calendar day by the viewer's timezone offset (confirmed live: a bar dragged
+ * to start on local-midnight Sep 22 in UTC+7 round-trips through `.toISOString()` as Sep 21).
+ * Exported for gantt-widget.tsx's onTaskUpdate, which receives raw Date objects from a bar drag.
+ */
+export function localDateToIsoDay(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return dateInputToIso(`${y}-${m}-${day}`);
 }
 
 /** Maps a project's tasks/dependencies into GanttChart's input shape — shared by the full Gantt tab and the Focus view's next-2-weeks strip. */

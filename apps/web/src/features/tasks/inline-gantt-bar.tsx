@@ -1,7 +1,7 @@
 'use client';
 
 import type { TaskDto } from '@pmtool/shared-types';
-import { STATUS_BAR_COLOR } from '../gantt/use-gantt-data';
+import { addLocalDays, startOfLocalDay, STATUS_BAR_COLOR } from '../gantt/use-gantt-data';
 import { formatDate } from '../../lib/date-input';
 import { percentFor, type TimelineScale } from './timeline-scale';
 
@@ -13,11 +13,16 @@ import { percentFor, type TimelineScale } from './timeline-scale';
  * Read-only: the row's own date inputs already edit start/due, so dragging isn't offered here.
  */
 export function InlineGanttBar({ task, scale }: { task: TaskDto; scale: TimelineScale }) {
-  const start = task.startDate ? new Date(task.startDate) : task.dueDate ? new Date(task.dueDate) : null;
-  const end = task.dueDate ? new Date(task.dueDate) : start;
-  if (!start || !end) return null;
-  const taskStart = end < start ? end : start;
-  const taskEnd = end < start ? start : end;
+  const rawStart = task.startDate ? new Date(task.startDate) : task.dueDate ? new Date(task.dueDate) : null;
+  const rawEnd = task.dueDate ? new Date(task.dueDate) : rawStart;
+  if (!rawStart || !rawEnd) return null;
+  // Same day-boundary conversion as the full Gantt tab (use-gantt-data.ts): a task occupies whole
+  // calendar days, start through due inclusive, so a 1-day task (startDate === dueDate) still gets a
+  // full day's width instead of collapsing to a zero-width point.
+  const lo = rawEnd < rawStart ? rawEnd : rawStart;
+  const hi = rawEnd < rawStart ? rawStart : rawEnd;
+  const taskStart = startOfLocalDay(lo);
+  const taskEnd = addLocalDays(startOfLocalDay(hi), 1);
 
   const left = percentFor(taskStart, scale);
   const right = percentFor(taskEnd, scale);
