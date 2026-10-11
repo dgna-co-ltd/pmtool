@@ -34,6 +34,21 @@ function paint(node: ScopeMapNode): { fill: string; stroke: string } {
 
 const truncate = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
 
+/** A node's status lives in one shared field but means a different enum depending on its kind. */
+function statusText(
+  node: ScopeMapNode,
+  tTask: (key: string) => string,
+  tCharter: (key: string) => string,
+  tDeliverable: (key: string) => string,
+): string | null {
+  if (!node.status) return null;
+  if (node.kind === 'charter' || node.kind === 'scope') {
+    return tCharter(node.status === 'APPROVED' ? 'approved' : 'draft');
+  }
+  if (node.kind === 'deliverableRecord') return tDeliverable(node.status as never);
+  return tTask(node.status as never);
+}
+
 function edgePath(x1: number, y1: number, x2: number, y2: number): string {
   const dx = Math.max(16, (x2 - x1) / 2);
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
@@ -41,9 +56,13 @@ function edgePath(x1: number, y1: number, x2: number, y2: number): string {
 
 export function ScopeMap({ orgSlug, projectKey }: { orgSlug: string; projectKey: string }) {
   const t = useTranslations('dashboard.project.scopeMap');
+  const tTaskStatus = useTranslations('tasks.status');
+  const tCharterStatus = useTranslations('charter');
+  const tDeliverableStatus = useTranslations('deliverables.status');
   const router = useRouter();
   const { data: map } = useScopeMap(orgSlug, projectKey);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [hover, setHover] = useState<{ id: string; top: number; left: number } | null>(null);
 
   const layout = useMemo(() => (map ? layoutScopeMap(map, expanded) : null), [map, expanded]);
   const gaps = useMemo(() => {
@@ -93,8 +112,17 @@ export function ScopeMap({ orgSlug, projectKey }: { orgSlug: string; projectKey:
           onKeyDown={(e) => {
             if (e.key === 'Enter') router.push(hrefOf(node));
           }}
+          onMouseEnter={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setHover({ id: node.id, top: r.bottom + 6, left: r.left });
+          }}
+          onMouseLeave={() => setHover((h) => (h?.id === node.id ? null : h))}
+          onFocus={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setHover({ id: node.id, top: r.bottom + 6, left: r.left });
+          }}
+          onBlur={() => setHover((h) => (h?.id === node.id ? null : h))}
         >
-          <title>{`${node.code ? `${node.code} · ` : ''}${text}`}</title>
           <rect
             x={p.x}
             y={p.y}
@@ -277,6 +305,55 @@ export function ScopeMap({ orgSlug, projectKey }: { orgSlug: string; projectKey:
 
         <Coverage checks={map.checks} nameOf={(id) => nameOf(id)?.label ?? id} hrefOf={(id) => `${base}/tasks/${id}`} />
       </CardContent>
+      {hover &&
+        (() => {
+          const n = nameOf(hover.id);
+          if (!n) return null;
+          const reasons = map.checks.filter((c) => c.offenders.includes(n.id));
+          const status = statusText(n, tTaskStatus, tCharterStatus, tDeliverableStatus);
+          const left = Math.min(hover.left, Math.max(8, window.innerWidth - 300));
+          return (
+            <div
+              role="tooltip"
+              className="pointer-events-none fixed z-50 w-72 rounded-md border border-line bg-surface p-3 text-xs shadow-lg"
+              style={{ top: hover.top, left }}
+            >
+              <p className="font-semibold text-ink-primary">
+                {n.code ? `${n.code} · ` : ''}
+                {label(n)}
+              </p>
+              {(status || n.progress !== null) && (
+                <dl className="mt-1.5 flex flex-col gap-0.5 text-ink-secondary">
+                  {status && (
+                    <div className="flex gap-1.5">
+                      <dt className="text-ink-muted">{t('tooltip.status')}:</dt>
+                      <dd>{status}</dd>
+                    </div>
+                  )}
+                  {n.progress !== null && (
+                    <div className="flex gap-1.5">
+                      <dt className="text-ink-muted">{t('tooltip.progress')}:</dt>
+                      <dd className="tabular-nums">{n.progress}%</dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+              {reasons.length > 0 && (
+                <div className="mt-2 border-t border-line pt-2">
+                  <p className="font-semibold text-warning">{t('legendGap')}</p>
+                  <ul className="mt-1 flex flex-col gap-1.5">
+                    {reasons.map((c) => (
+                      <li key={c.key}>
+                        <p className="font-medium text-ink-primary">{t(`checks.${c.key}` as never)}</p>
+                        <p className="text-ink-muted">{t(`checkHelp.${c.key}` as never)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        })()}
     </Card>
   );
 }

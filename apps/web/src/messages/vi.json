@@ -724,7 +724,11 @@
           "singleChildParent": "Các con phải gộp lại đủ 100% phạm vi của mục cha; một con duy nhất thường nghĩa là chưa phân rã."
         },
         "expandAll": "Mở hết",
-        "collapseAll": "Thu gọn hết"
+        "collapseAll": "Thu gọn hết",
+        "tooltip": {
+          "status": "Trạng thái",
+          "progress": "Tiến độ"
+        }
       }
     },
     "onboarding": {

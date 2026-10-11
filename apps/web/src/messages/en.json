@@ -724,7 +724,11 @@
           "singleChildParent": "Children must add up to 100% of the parent's scope; a lone child usually means it is not decomposed yet."
         },
         "expandAll": "Expand all",
-        "collapseAll": "Collapse all"
+        "collapseAll": "Collapse all",
+        "tooltip": {
+          "status": "Status",
+          "progress": "Progress"
+        }
       }
     },
     "onboarding": {
