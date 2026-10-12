@@ -21,7 +21,7 @@ import {
   TASK_STATUSES,
   WBS_NODE_TYPES,
 } from '@pmtool/shared-types';
-import { Button, Card, Input, Modal, Select } from '@pmtool/ui';
+import { Button, Card, Input, Modal, Select, useToast } from '@pmtool/ui';
 import { HistoryButton } from '../history/history-modal';
 import { UserAvatar } from '../people/user-avatar';
 import { Link, useRouter } from '../../i18n/navigation';
@@ -37,32 +37,32 @@ import { DependenciesEditor } from './dependencies-editor';
 import { CreateTaskModal } from './create-task-modal';
 import { SuggestionsModal } from '../ai/suggestions-modal';
 
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type SaveStatus = 'idle' | 'saving';
 
-/** Turns a mutation's lifecycle into a visible "saving / saved / failed" state — edits here save on their own, so silence reads as "did it work?". */
-function useSaveStatus(m: {
-  isPending: boolean;
-  isSuccess: boolean;
-  isError: boolean;
-}): SaveStatus {
-  const [showSaved, setShowSaved] = useState(false);
+/**
+ * Surfaces a mutation's lifecycle: "saving" stays inline next to the field being edited (an
+ * in-progress state isn't a notification), while the saved/failed outcome fires a toast — edits
+ * here save on their own, so silence on completion reads as "did it work?".
+ */
+function useSaveStatus(
+  m: { isPending: boolean; isSuccess: boolean; isError: boolean; error: unknown },
+  toast: { success: (message: string) => void; error: (message: string) => void },
+  savedMessage: string,
+  errorMessage: string,
+): SaveStatus {
   const wasPending = useRef(false);
   useEffect(() => {
     if (m.isPending) {
       wasPending.current = true;
-      setShowSaved(false);
     } else if (wasPending.current && m.isSuccess) {
       wasPending.current = false;
-      setShowSaved(true);
-      const id = setTimeout(() => setShowSaved(false), 2500);
-      return () => clearTimeout(id);
-    } else if (m.isError) {
+      toast.success(savedMessage);
+    } else if (wasPending.current && m.isError) {
       wasPending.current = false;
+      toast.error(m.error instanceof ApiError ? m.error.message : errorMessage);
     }
-  }, [m.isPending, m.isSuccess, m.isError]);
-  if (m.isPending) return 'saving';
-  if (m.isError) return 'error';
-  return showSaved ? 'saved' : 'idle';
+  }, [m.isPending, m.isSuccess, m.isError, m.error, toast, savedMessage, errorMessage]);
+  return m.isPending ? 'saving' : 'idle';
 }
 
 function EditableTitle({
@@ -146,13 +146,14 @@ export function TaskDetail({
   const deleteTask = useDeleteTask(orgSlug, projectKey);
   const summarizeTask = useSummarizeTask(orgSlug, projectKey);
   const suggestSubtasks = useSuggestSubtasks(orgSlug, projectKey);
+  const toast = useToast();
 
   const [description, setDescription] = useState('');
   const [percentComplete, setPercentComplete] = useState('0');
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [dateError, setDateError] = useState(false);
-  const saveStatus = useSaveStatus(updateTask);
+  const saveStatus = useSaveStatus(updateTask, toast, t('saved'), t('saveError'));
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [subtaskSuggestions, setSubtaskSuggestions] = useState<TaskSuggestionDto[] | null>(null);
@@ -277,15 +278,11 @@ export function TaskDetail({
           label={t('editTitle')}
           onSave={(title) => updateTask.mutate({ title })}
         />
-        <span role="status" aria-live="polite" className="text-xs">
-          {saveStatus === 'saving' && <span className="text-ink-muted">{t('saving')}</span>}
-          {saveStatus === 'saved' && <span className="text-success">✓ {t('saved')}</span>}
-          {saveStatus === 'error' && (
-            <span role="alert" className="text-danger">
-              {updateTask.error instanceof ApiError ? updateTask.error.message : t('saveError')}
-            </span>
-          )}
-        </span>
+        {saveStatus === 'saving' && (
+          <span role="status" aria-live="polite" className="text-xs text-ink-muted">
+            {t('saving')}
+          </span>
+        )}
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">

@@ -10,6 +10,7 @@ export * from './components/Badge/Badge';
 export * from './components/Avatar/Avatar';
 export * from './components/Modal/Modal';
 export * from './components/Table/Table';
+export * from './components/Toast/Toast';
 
 export * from './components/Nav/ThemeProvider';
 export * from './components/Nav/ThemeSwitcher';

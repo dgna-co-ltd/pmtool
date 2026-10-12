@@ -40,7 +40,7 @@ test('filter the task list, change status inline, then edit title, dates and com
   await page.getByLabel('Bấm để sửa tiêu đề').fill('Thiết kế logo mới');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Thiết kế logo mới' })).toBeVisible();
-  await expect(page.getByText('✓ Đã lưu')).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Đã lưu' })).toBeVisible();
 
   // Dates: a milestone needs a due date first; then its start locks to it.
   const milestone = page.getByLabel('Là mốc quan trọng');

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { ThemeProvider } from '@pmtool/ui';
+import { ThemeProvider, ToastProvider } from '@pmtool/ui';
 import { locales, AppLocale } from '../../i18n/locales';
 import { QueryProvider } from '../../providers/query-provider';
 import '../globals.css';
@@ -40,7 +40,9 @@ export default async function LocaleLayout({
         </div>
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
-            <QueryProvider>{children}</QueryProvider>
+            <ToastProvider>
+              <QueryProvider>{children}</QueryProvider>
+            </ToastProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

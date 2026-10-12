@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { GoalResult, ReviewItemDto } from '@pmtool/shared-types';
 import { ApiError, useSprintReview, useUpdateSprintReview } from '@pmtool/api-client';
-import { Avatar, Badge, Button, Card } from '@pmtool/ui';
+import { Avatar, Badge, Button, Card, useToast } from '@pmtool/ui';
 import { Link } from '../../i18n/navigation';
 import { usePermissions } from '../projects/use-permissions';
 import { BurndownModal } from './burndown-modal';
@@ -98,9 +98,9 @@ export function SprintReviewView({
   const { data: r, isLoading, error } = useSprintReview(orgSlug, projectKey, sprintId);
   const update = useUpdateSprintReview(orgSlug, projectKey);
   const { canManage } = usePermissions(orgSlug, projectKey);
+  const toast = useToast();
   const [notes, setNotes] = useState('');
   const [dirty, setDirty] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showBurndown, setShowBurndown] = useState(false);
 
@@ -182,14 +182,14 @@ export function SprintReviewView({
   }
 
   function save(input: { reviewNotes?: string | null; goalResult?: GoalResult | null }) {
-    setSaved(false);
     update.mutate(
       { sprintId, input },
       {
         onSuccess: () => {
           setDirty(false);
-          setSaved(true);
+          toast.success(t('saved'));
         },
+        onError: () => toast.error(t('saveError')),
       },
     );
   }
@@ -405,7 +405,6 @@ export function SprintReviewView({
               onChange={(e) => {
                 setNotes(e.target.value);
                 setDirty(true);
-                setSaved(false);
               }}
               className="glass-field w-full rounded-md border border-line-glass px-3 py-2 text-sm text-ink-primary outline-none focus-visible:ring-2 focus-visible:ring-focus print:hidden"
             />
@@ -420,16 +419,6 @@ export function SprintReviewView({
               >
                 {t('saveNotes')}
               </Button>
-              {saved && (
-                <span role="status" className="text-sm text-success">
-                  {t('saved')}
-                </span>
-              )}
-              {update.isError && (
-                <span role="alert" className="text-sm text-danger">
-                  {t('saveError')}
-                </span>
-              )}
             </div>
           </>
         ) : r.reviewNotes ? (

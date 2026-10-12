@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { DependencyType } from '@pmtool/shared-types';
 import { useCreateDependency, useDeleteDependency, useUpdateTaskById } from '@pmtool/api-client';
-import { GanttChart, type GanttLinkChange, type GanttLinkCreate, type GanttLinkType } from '@pmtool/ui';
+import { GanttChart, useToast, type GanttLinkChange, type GanttLinkCreate, type GanttLinkType } from '@pmtool/ui';
 import { addLocalDays, localDateToIsoDay, useGanttData } from './use-gantt-data';
 import { TaskPreviewModal } from './task-preview-modal';
 
@@ -24,16 +24,9 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
   const updateTask = useUpdateTaskById(orgSlug, projectKey);
   const createDependency = useCreateDependency(orgSlug, projectKey);
   const deleteDependency = useDeleteDependency(orgSlug, projectKey);
+  const toast = useToast();
 
   const [previewTaskId, setPreviewTaskId] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
-  const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  const flashSaveStatus = (status: 'saved' | 'error') => {
-    setSaveStatus(status);
-    clearTimeout(saveStatusTimer.current);
-    saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2500);
-  };
 
   if (isLoading) {
     return <div className="h-96 animate-pulse rounded-lg border border-line bg-surface" />;
@@ -51,16 +44,6 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
 
   return (
     <div>
-      {saveStatus === 'saved' && (
-        <p role="status" className="mb-2 text-xs text-ink-secondary">
-          {t('saved')}
-        </p>
-      )}
-      {saveStatus === 'error' && (
-        <p role="alert" className="mb-2 text-xs text-danger">
-          {t('saveError')}
-        </p>
-      )}
       <GanttChart
         tasks={ganttTasks}
         links={ganttLinks}
@@ -91,8 +74,8 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
               },
             },
             {
-              onSuccess: () => flashSaveStatus('saved'),
-              onError: () => flashSaveStatus('error'),
+              onSuccess: () => toast.success(t('saved')),
+              onError: () => toast.error(t('saveError')),
             },
           );
         }}
@@ -106,13 +89,13 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
               ...(link.lag ? { lagDays: link.lag } : {}),
             },
             {
-              onError: () => flashSaveStatus('error'),
+              onError: () => toast.error(t('saveError')),
             },
           );
         }}
         onLinkDelete={(linkId) => {
           deleteDependency.mutate(linkId, {
-            onError: () => flashSaveStatus('error'),
+            onError: () => toast.error(t('saveError')),
           });
         }}
         onLinkUpdate={(change: GanttLinkChange) => {
@@ -129,10 +112,10 @@ export function GanttWidget({ orgSlug, projectKey }: { orgSlug: string; projectK
                   type: change.type ? LINK_TYPE_TO_DEPENDENCY_TYPE[change.type] : existing.type,
                   ...(change.lag ? { lagDays: change.lag } : {}),
                 },
-                { onError: () => flashSaveStatus('error') },
+                { onError: () => toast.error(t('saveError')) },
               );
             },
-            onError: () => flashSaveStatus('error'),
+            onError: () => toast.error(t('saveError')),
           });
         }}
       />
