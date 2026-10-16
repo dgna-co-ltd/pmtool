@@ -129,6 +129,15 @@ export function useMoveTask(orgSlug: string | undefined, projectKey: string | un
   });
 }
 
+export function useDuplicateTask(orgSlug: string | undefined, projectKey: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) =>
+      apiRequest<TaskDto>(`${base(orgSlug!, projectKey!)}/tasks/${taskId}/duplicate`, { method: 'POST' }),
+    onSuccess: () => invalidateProjectTasks(queryClient, orgSlug ?? '', projectKey ?? ''),
+  });
+}
+
 export function useDeleteTask(orgSlug: string | undefined, projectKey: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({

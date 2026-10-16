@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import {
   ApiError,
   useDeleteTask,
+  useDuplicateTask,
   useSuggestSubtasks,
   useSummarizeTask,
   useTask,
@@ -144,6 +145,7 @@ export function TaskDetail({
   const { data: sprints } = useSprints(orgSlug, projectKey, sprintsOn);
   const tSprint = useTranslations('sprints');
   const deleteTask = useDeleteTask(orgSlug, projectKey);
+  const duplicateTask = useDuplicateTask(orgSlug, projectKey);
   const summarizeTask = useSummarizeTask(orgSlug, projectKey);
   const suggestSubtasks = useSuggestSubtasks(orgSlug, projectKey);
   const toast = useToast();
@@ -646,6 +648,20 @@ export function TaskDetail({
 
       <div className="mt-6 flex justify-end gap-2">
         <HistoryButton orgSlug={orgSlug} projectKey={projectKey} entityType="Task" entityId={task.id} title={`${task.humanKey} ${task.title}`} variant="outline" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={duplicateTask.isPending}
+          onClick={() =>
+            duplicateTask.mutate(task.id, {
+              onSuccess: (copy) => router.push(`/${orgSlug}/projects/${projectKey}/tasks/${copy.id}`),
+              onError: () => toast.error(t('duplicateError')),
+            })
+          }
+        >
+          {duplicateTask.isPending ? t('duplicating') : t('duplicate')}
+        </Button>
         <Button
           type="button"
           variant="ghost"

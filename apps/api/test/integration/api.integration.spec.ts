@@ -657,6 +657,86 @@ describe('Deliverables and milestones', () => {
   });
 });
 
+describe('Task duplicate', () => {
+  it('copies a task and its whole subtree, preserving fields and assignees but not the original dependency/comment history', async () => {
+    const owner = await registerUser('Dup Owner');
+    const org = await createOrg(owner.accessToken, 'Dup Org');
+    const helper = await inviteAndAccept(
+      owner.accessToken,
+      org.slug,
+      'MEMBER',
+      'Dup Helper',
+    );
+    const helperId = await getUserId(helper.email);
+    const project = await createProject(owner.accessToken, org.slug, 'DUP');
+    const base = `${API_PREFIX}/organizations/${org.slug}/projects/${project.key}/tasks`;
+    const auth = { Authorization: `Bearer ${owner.accessToken}` };
+
+    const parent = await request(app.getHttpServer())
+      .post(base)
+      .set(auth)
+      .send({
+        title: 'Gói việc gốc',
+        description: 'Mô tả gốc',
+        priority: 'HIGH',
+        assigneeId: helperId,
+      })
+      .expect(201);
+
+    const child = await request(app.getHttpServer())
+      .post(base)
+      .set(auth)
+      .send({ title: 'Việc con', parentTaskId: parent.body.data.id })
+      .expect(201);
+
+    const copy = await request(app.getHttpServer())
+      .post(`${base}/${parent.body.data.id}/duplicate`)
+      .set(auth)
+      .expect(201);
+    expect(copy.body.data.title).toBe('Gói việc gốc (bản sao)');
+    expect(copy.body.data.id).not.toBe(parent.body.data.id);
+    expect(copy.body.data.priority).toBe('HIGH');
+    expect(copy.body.data.assignees[0]?.id).toBe(helperId);
+    expect(copy.body.data.parentTaskId).toBe(parent.body.data.parentTaskId);
+
+    const copyDetail = await request(app.getHttpServer())
+      .get(`${base}/${copy.body.data.id}`)
+      .set(auth)
+      .expect(200);
+    expect(copyDetail.body.data.description).toBe('Mô tả gốc');
+
+    const children = await request(app.getHttpServer())
+      .get(`${base}?parentTaskId=${copy.body.data.id}`)
+      .set(auth)
+      .expect(200);
+    expect(children.body.data).toHaveLength(1);
+    expect(children.body.data[0].title).toBe('Việc con');
+    expect(children.body.data[0].id).not.toBe(child.body.data.id);
+
+    // The original subtree is untouched.
+    const originalChildren = await request(app.getHttpServer())
+      .get(`${base}?parentTaskId=${parent.body.data.id}`)
+      .set(auth)
+      .expect(200);
+    expect(originalChildren.body.data).toHaveLength(1);
+    expect(originalChildren.body.data[0].id).toBe(child.body.data.id);
+
+    // Both the copied parent and its copied child get their own "created" history entry, same as any
+    // other task — toTaskHistory only ever surfaces 'created'/'updated', so a distinct 'duplicated'
+    // action would silently vanish from the history tab instead.
+    const parentHistory = await request(app.getHttpServer())
+      .get(`${base}/${copy.body.data.id}/history`)
+      .set(auth)
+      .expect(200);
+    expect(parentHistory.body.data[0].action).toBe('created');
+    const childHistory = await request(app.getHttpServer())
+      .get(`${base}/${children.body.data[0].id}/history`)
+      .set(auth)
+      .expect(200);
+    expect(childHistory.body.data[0].action).toBe('created');
+  });
+});
+
 describe('Task history', () => {
   it('records what changed on each edit, skips no-ops, and keeps other tasks out', async () => {
     const owner = await registerUser('History Owner');

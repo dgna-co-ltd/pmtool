@@ -3,6 +3,7 @@ import { TasksService } from './tasks.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { TelegramNotificationsService } from '../telegram/telegram-notifications.service';
+import { ActivityService } from '../activity/activity.service';
 
 function makeTask(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -48,6 +49,9 @@ describe('TasksService.move', () => {
       {
         notifyTaskAssigned: vi.fn().mockResolvedValue(undefined),
       } as unknown as TelegramNotificationsService,
+      {
+        record: vi.fn().mockResolvedValue(undefined),
+      } as unknown as ActivityService,
     );
   });
 

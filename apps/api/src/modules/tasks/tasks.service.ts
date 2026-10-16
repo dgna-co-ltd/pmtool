@@ -12,7 +12,7 @@ import {
   WbsNodeType,
 } from '@pmtool/shared-types';
 import { PrismaService } from '../../prisma/prisma.service';
-import { toRichText } from './rich-text.util';
+import { fromRichText, toRichText } from './rich-text.util';
 import { assertRetypeFits, placeChild } from './wbs-rules';
 import { assertOrgMembers } from '../../common/guards/org-members.util';
 import { addActivityMetadata } from '../../common/context/request-context';
@@ -20,6 +20,7 @@ import { diffTask, TaskSnapshot } from './task-changes';
 import { GamificationService } from '../gamification/gamification.service';
 import { TelegramNotificationsService } from '../telegram/telegram-notifications.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityService } from '../activity/activity.service';
 
 type TaskWithAssignees = Awaited<ReturnType<TasksService['findByIdOrThrow']>>;
 
@@ -104,16 +105,89 @@ function toAssigneeRows(
   return rows;
 }
 
+/** Builds a `create()` payload that reproduces an existing task's own fields — used by `duplicate()`. */
+function taskToCreateInput(
+  task: TaskWithAssignees,
+  parentTaskId: string | null | undefined,
+  title: string,
+): CreateTaskInput {
+  const supporterIds = task.assignees
+    .filter((a) => a.role === 'SUPPORT')
+    .map((a) => a.userId);
+  return {
+    title,
+    description: fromRichText(task.description) ?? undefined,
+    parentTaskId: parentTaskId ?? undefined,
+    nodeType: task.nodeType,
+    priority: task.priority,
+    startDate: task.startDate?.toISOString(),
+    dueDate: task.dueDate?.toISOString(),
+    estimateHours: task.estimateHours ?? undefined,
+    isMilestone: task.isMilestone,
+    storyPoints: task.storyPoints ?? undefined,
+    assigneeId: task.assignees.find((a) => a.role === 'PRIMARY')?.userId,
+    supporterIds: supporterIds.length ? supporterIds : undefined,
+  };
+}
+
 @Injectable()
 export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gamificationService: GamificationService,
     private readonly telegramNotifications: TelegramNotificationsService,
+    private readonly activityService: ActivityService,
     @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   async create(
+    organizationId: string,
+    projectId: string,
+    createdById: string,
+    input: CreateTaskInput,
+  ) {
+    const task = await this.createTaskRow(
+      organizationId,
+      projectId,
+      createdById,
+      input,
+    );
+
+    const initialAssignees = toAssigneeRows(
+      input.assigneeId,
+      input.supporterIds,
+    );
+    await this.gamificationService.awardPoints(
+      organizationId,
+      createdById,
+      5,
+      'task_created',
+    );
+    if (input.assigneeId) {
+      await this.telegramNotifications.notifyTaskAssigned(task, [
+        input.assigneeId,
+      ]);
+    }
+    await this.notifications?.notify({
+      organizationId,
+      userIds: initialAssignees.map((a) => a.userId),
+      type: 'TASK_ASSIGNED',
+      actorId: createdById,
+      entityKind: 'task',
+      entityId: task.id,
+      projectKey: task.humanKey.split('-')[0]!,
+      entityTitle: task.title,
+    });
+    return task;
+  }
+
+  /**
+   * A project/task started from an existing task (duplicate) or a bulk import produces many rows at
+   * once — awarding gamification points and firing an assignment notification per row would spam the
+   * assignee and inflate points for what isn't new, individually-chosen work. This is the shared core
+   * `create()` builds on; `duplicate()` calls it directly to skip those side effects.
+   */
+  private async createTaskRow(
     organizationId: string,
     projectId: string,
     createdById: string,
@@ -215,28 +289,84 @@ export class TasksService {
       });
     });
 
-    await this.gamificationService.awardPoints(
-      organizationId,
-      createdById,
-      5,
-      'task_created',
-    );
-    if (input.assigneeId) {
-      await this.telegramNotifications.notifyTaskAssigned(task, [
-        input.assigneeId,
-      ]);
-    }
-    await this.notifications?.notify({
-      organizationId,
-      userIds: initialAssignees.map((a) => a.userId),
-      type: 'TASK_ASSIGNED',
-      actorId: createdById,
-      entityKind: 'task',
-      entityId: task.id,
-      projectKey: task.humanKey.split('-')[0]!,
-      entityTitle: task.title,
-    });
     return task;
+  }
+
+  /**
+   * Deep-copies a task and its whole subtree (recursively) under the same parent, right after the
+   * original. Each new row goes through the same humanKey/orderIndex/nodeType-placement/assignee
+   * logic as a normal create, minus the gamification points and assignment notifications a bulk copy
+   * shouldn't spam out. Dependencies and comments are deliberately not carried over — they belong to
+   * the original task's own history, not a fresh copy of it.
+   */
+  async duplicate(
+    organizationId: string,
+    projectId: string,
+    taskId: string,
+    actingUserId: string,
+  ) {
+    const root = await this.findByIdOrThrow(organizationId, taskId);
+    if (root.projectId !== projectId) {
+      throw new NotFoundException('Không tìm thấy công việc');
+    }
+
+    const newRoot = await this.createTaskRow(
+      organizationId,
+      projectId,
+      actingUserId,
+      taskToCreateInput(root, root.parentTaskId, `${root.title} (bản sao)`),
+    );
+
+    await this.duplicateChildren(
+      organizationId,
+      projectId,
+      actingUserId,
+      root.id,
+      newRoot.id,
+    );
+
+    return newRoot;
+  }
+
+  private async duplicateChildren(
+    organizationId: string,
+    projectId: string,
+    actingUserId: string,
+    oldParentId: string,
+    newParentId: string,
+  ): Promise<void> {
+    const children = await this.prisma.db.task.findMany({
+      where: { organizationId, parentTaskId: oldParentId },
+      include: TASK_INCLUDE,
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    for (const child of children) {
+      const newChild = await this.createTaskRow(
+        organizationId,
+        projectId,
+        actingUserId,
+        taskToCreateInput(child, newParentId, child.title),
+      );
+      await this.activityService
+        .record({
+          organizationId,
+          actorId: actingUserId,
+          entityType: 'Task',
+          action: 'created',
+          entityId: newChild.id,
+          projectId,
+          metadata: { title: newChild.title },
+        })
+        .catch(() => {});
+      await this.duplicateChildren(
+        organizationId,
+        projectId,
+        actingUserId,
+        child.id,
+        newChild.id,
+      );
+    }
   }
 
   /**

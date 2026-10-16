@@ -151,6 +151,26 @@ export class TasksController {
     return { data: toTaskDto(withRelations) };
   }
 
+  @Post(':taskId/duplicate')
+  @ProjectEntity('task', 'taskId')
+  @UseGuards(ProjectRolesGuard)
+  @Roles(...CAN_EDIT_TASKS)
+  @LogActivity('Task', 'created')
+  async duplicate(
+    @CurrentOrg() ctx: CurrentOrgContext,
+    @CurrentProject() project: Project,
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{ data: TaskDto }> {
+    const task = await this.tasksService.duplicate(
+      ctx.organization.id,
+      project.id,
+      taskId,
+      user.id,
+    );
+    return { data: toTaskDto(task) };
+  }
+
   @Delete(':taskId')
   @ProjectEntity('task', 'taskId')
   @UseGuards(ProjectRolesGuard)
