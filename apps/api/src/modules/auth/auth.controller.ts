@@ -17,6 +17,8 @@ import {
   AuthTokens,
   LoginInput,
   loginSchema,
+  ChangePasswordInput,
+  changePasswordSchema,
   ForgotPasswordInput,
   forgotPasswordSchema,
   RegisterInput,
@@ -38,6 +40,7 @@ import { toUserDto } from './user.mapper';
 import { RateLimit } from '../../common/rate-limit/rate-limit.decorator';
 import { RateLimitGuard } from '../../common/rate-limit/rate-limit.guard';
 import { AccountService } from './account.service';
+import { hashRefreshToken } from './refresh-token.util';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
 const REFRESH_COOKIE_PATH = '/api/v1/auth';
@@ -194,6 +197,31 @@ export class AuthController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ data: { alreadyVerified: boolean } }> {
     return { data: await this.accountService.sendVerification(user.id) };
+  }
+
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    name: 'change-password',
+    limit: 10,
+    windowSec: 3600,
+    by: 'user',
+  })
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+    @Body(new ZodValidationPipe(changePasswordSchema))
+    body: ChangePasswordInput,
+  ): Promise<{ data: { ok: true } }> {
+    const rawRefreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+    await this.accountService.changePassword(
+      user.id,
+      body.currentPassword,
+      body.newPassword,
+      rawRefreshToken ? hashRefreshToken(rawRefreshToken) : undefined,
+    );
+    return { data: { ok: true } };
   }
 
   @Get('me')

@@ -1842,6 +1842,78 @@ describe('Privacy: export and account deletion', () => {
   });
 });
 
+describe('Change password', () => {
+  const http = () => request(app.getHttpServer());
+  const asUser = (u: { accessToken: string }) => ({
+    Authorization: `Bearer ${u.accessToken}`,
+  });
+
+  it('rejects the wrong current password, then changes it and revokes every other session but the one that changed it', async () => {
+    const user = await registerUser('Change Pw');
+
+    // A second, concurrent session (e.g. another device/browser) before the password is touched.
+    const otherSession = await request(app.getHttpServer())
+      .post(`${API_PREFIX}/auth/login`)
+      .send({ email: user.email, password: 'Password123' })
+      .expect(200);
+    const otherCookie = otherSession.headers['set-cookie'];
+
+    await http()
+      .post(`${API_PREFIX}/auth/change-password`)
+      .set(asUser(user))
+      .send({ currentPassword: 'WrongPassword1', newPassword: 'BrandNewPass456' })
+      .expect(400);
+
+    await http()
+      .post(`${API_PREFIX}/auth/change-password`)
+      .set(asUser(user))
+      .send({ currentPassword: 'Password123', newPassword: 'BrandNewPass456' })
+      .expect(200);
+
+    // Old password no longer works; new one does.
+    await http()
+      .post(`${API_PREFIX}/auth/login`)
+      .send({ email: user.email, password: 'Password123' })
+      .expect(401);
+    await http()
+      .post(`${API_PREFIX}/auth/login`)
+      .send({ email: user.email, password: 'BrandNewPass456' })
+      .expect(200);
+
+    // The *other* session's refresh token was revoked...
+    await http()
+      .post(`${API_PREFIX}/auth/refresh`)
+      .set('Cookie', otherCookie)
+      .expect(401);
+    // ...but the session that performed the change is untouched: its own access token still works
+    // (no re-login needed), confirmed via a plain authenticated call.
+    await http().get(`${API_PREFIX}/auth/me`).set(asUser(user)).expect(200);
+  });
+
+  it('lets a Google-only account set its first password without a current one', async () => {
+    const user = await registerUser('Google Only');
+    await app.get(PrismaService).db.user.update({
+      where: { email: user.email },
+      data: { hasPassword: false },
+    });
+
+    await http()
+      .post(`${API_PREFIX}/auth/change-password`)
+      .set(asUser(user))
+      .send({ newPassword: 'FirstRealPass789' })
+      .expect(200);
+
+    const me = (
+      await http().get(`${API_PREFIX}/auth/me`).set(asUser(user)).expect(200)
+    ).body.data;
+    expect(me.hasPassword).toBe(true);
+    await http()
+      .post(`${API_PREFIX}/auth/login`)
+      .send({ email: user.email, password: 'FirstRealPass789' })
+      .expect(200);
+  });
+});
+
 describe('Project templates', () => {
   it('starts a project from a template: scope, WBS with dictionary, milestones, records and risks, with a clean coverage report', async () => {
     const owner = await registerUser('Template Owner');

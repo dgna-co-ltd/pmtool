@@ -113,6 +113,47 @@ export class AccountService {
     return { alreadyVerified: false };
   }
 
+  /**
+   * Current password is required whenever the account already has one (checked server-side,
+   * regardless of what the client sent) — a Google-only account setting its first password skips it.
+   * Revokes every other refresh token so a device that still has the old password is signed out,
+   * but leaves `currentRefreshTokenHash` (this device's own session) alone.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string | undefined,
+    newPassword: string,
+    currentRefreshTokenHash?: string,
+  ): Promise<void> {
+    const user = await this.prisma.db.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+    if (
+      user.hasPassword &&
+      (!currentPassword ||
+        !(await argon2.verify(user.passwordHash, currentPassword)))
+    ) {
+      throw new BadRequestException('Mật khẩu hiện tại không đúng');
+    }
+    const passwordHash = await argon2.hash(newPassword);
+    await this.prisma.db.$transaction([
+      this.prisma.db.user.update({
+        where: { id: userId },
+        data: { passwordHash, hasPassword: true },
+      }),
+      this.prisma.db.refreshToken.updateMany({
+        where: {
+          userId,
+          revokedAt: null,
+          ...(currentRefreshTokenHash
+            ? { tokenHash: { not: currentRefreshTokenHash } }
+            : {}),
+        },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+  }
+
   async verifyEmail(rawToken: string): Promise<void> {
     const userId = await this.consume(rawToken, 'EMAIL_VERIFY');
     await this.prisma.db.user.update({

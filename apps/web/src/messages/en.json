@@ -828,6 +828,22 @@
       "taken": "Taken",
       "takenBy": "{name} already uses this character"
     },
+    "changePassword": {
+      "title": "Change password",
+      "description": "Other signed-in devices will be logged out after this; this device keeps its session.",
+      "setTitle": "Set a password",
+      "setDescription": "This account signs in through Google and has no password yet. Set one to also be able to sign in directly with email.",
+      "current": "Current password",
+      "new": "New password",
+      "hint": "At least 8 characters, with uppercase, lowercase and a number.",
+      "confirm": "Confirm new password",
+      "submit": "Change password",
+      "setSubmit": "Set password",
+      "done": "Password changed",
+      "mismatch": "The two passwords don't match",
+      "weak": "Password isn't strong enough",
+      "error": "Something went wrong, please try again."
+    },
     "privacy": {
       "title": "Data & privacy",
       "description": "Download your personal data or delete your account at any time.",

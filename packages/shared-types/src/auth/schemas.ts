@@ -72,6 +72,16 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export const verifyEmailSchema = z.object({ token: z.string().min(1) });
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 
+/**
+ * `currentPassword` is required by the server whenever the account already has one — it's optional
+ * here only so a Google-only account (no password yet) can set its first one without it.
+ */
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1).optional(),
+  newPassword: passwordSchema,
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 /** Deleting an account needs the current password, so a stolen session cannot erase it. */
 export const deleteAccountSchema = z
   .object({

@@ -828,6 +828,22 @@
       "taken": "Đã có người chọn",
       "takenBy": "{name} đã chọn nhân vật này"
     },
+    "changePassword": {
+      "title": "Đổi mật khẩu",
+      "description": "Các thiết bị khác đang đăng nhập sẽ bị đăng xuất sau khi đổi; thiết bị này vẫn giữ nguyên phiên.",
+      "setTitle": "Đặt mật khẩu",
+      "setDescription": "Tài khoản này đăng nhập qua Google và chưa có mật khẩu. Đặt một mật khẩu để có thể đăng nhập trực tiếp bằng email.",
+      "current": "Mật khẩu hiện tại",
+      "new": "Mật khẩu mới",
+      "hint": "Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.",
+      "confirm": "Nhập lại mật khẩu mới",
+      "submit": "Đổi mật khẩu",
+      "setSubmit": "Đặt mật khẩu",
+      "done": "Đã đổi mật khẩu",
+      "mismatch": "Hai mật khẩu chưa khớp",
+      "weak": "Mật khẩu chưa đủ mạnh",
+      "error": "Có lỗi xảy ra, vui lòng thử lại."
+    },
     "privacy": {
       "title": "Dữ liệu & quyền riêng tư",
       "description": "Tải về dữ liệu cá nhân của bạn hoặc xoá tài khoản bất cứ lúc nào.",

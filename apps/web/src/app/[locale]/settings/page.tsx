@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { SettingsShell } from '../../../features/settings/settings-shell';
 import { TelegramCard } from '../../../features/settings/telegram-card';
 import { CharacterCard } from '../../../features/settings/character-card';
+import { ChangePasswordCard } from '../../../features/settings/change-password-card';
 import { PrivacyCard } from '../../../features/settings/privacy-card';
 import { LoginHistoryCard } from '../../../features/presence/login-history-card';
 
@@ -16,6 +17,7 @@ export default function SettingsPage() {
         <CharacterCard />
         <TelegramCard />
         <LoginHistoryCard />
+        <ChangePasswordCard />
         <PrivacyCard />
       </div>
     </SettingsShell>

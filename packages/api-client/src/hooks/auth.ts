@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import type {
   AuthTokens,
+  ChangePasswordInput,
   ForgotPasswordInput,
   LoginInput,
   RegisterInput,
@@ -107,6 +108,16 @@ export function useResetPassword() {
   return useMutation({
     mutationFn: (input: ResetPasswordInput) =>
       apiRequest<{ ok: true }>('/api/v1/auth/reset-password', { method: 'POST', body: input }),
+  });
+}
+
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ChangePasswordInput) =>
+      apiRequest<{ ok: true }>('/api/v1/auth/change-password', { method: 'POST', body: input }),
+    // Flips `hasPassword` to true for a Google-only account setting its first password.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: authKeys.me }),
   });
 }
 
